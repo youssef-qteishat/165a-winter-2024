@@ -1,12 +1,21 @@
+#btree with object key and object val, maybe change to more specific stuff later
+#from https://btrees.readthedocs.io/en/latest/index.html
+from BTrees.OOBTree import OOBTree
+
+
 """
 A data strucutre holding indices for various columns of a table. Key column should be indexd by default, other columns can be indexed through this object. Indices are usually B-Trees, but other data structures can be used as well.
 """
 
 class Index:
-
     def __init__(self, table):
-        # One index for each table. All our empty initially.
+        # One index for each column for fast search. All our empty initially.
+        #for later  we'll prob just use only the key column for milestone 1 lol
         self.indices = [None] *  table.num_columns
+        #creates index for key column
+        #self.indices[table.key] = OOBTree()
+        #if value got updated need to reindex
+        self.updated = [0] * table.num_columns
         pass
 
     """
@@ -14,20 +23,21 @@ class Index:
     """
 
     def locate(self, column, value):
-        pass
+        self.update_index(column)
+        return self.indices[column][value]
 
     """
     # Returns the RIDs of all records with values in column "column" between "begin" and "end"
     """
 
     def locate_range(self, begin, end, column):
-        pass
-
+        return self.indices[column].values(min = begin, max = end)
     """
     # optional: Create index on specific column
     """
 
     def create_index(self, column_number):
+        #figure out after we get organization done
         pass
 
     """
@@ -35,4 +45,11 @@ class Index:
     """
 
     def drop_index(self, column_number):
-        pass
+        self.indices[column] = None
+        self.updated[column] = 0
+    
+    def update_index(self, column_number):
+        if self.indices[column] is not None or self.updated[column] == 1:
+            self.drop_index(column)
+            self.create_index(column)
+            self.updated[column] = 0

@@ -28,8 +28,12 @@ class Table:
         self.page_directory = {}
         self.index = Index(self)
         pass
-
+    def insert_record(self, columns):
+        pass
+    def update_record(self, columns):
+        pass
     def __merge(self):
+        #milestone2 we don't care lets goo
         print("merge is happening")
         pass
  
