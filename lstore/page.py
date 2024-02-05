@@ -15,4 +15,7 @@ class Page:
         offset = self.num_records*8
         self.data[offset:offset+8] = value.to_bytes(8, 'big')
         self.num_records += 1
-        return id(self.data) + offset
+        return offset
+    
+    def read(self, offset):
+        return int.from_bytes(self.data[offset:offset + 8], 'big')
