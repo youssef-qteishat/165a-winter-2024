@@ -16,6 +16,9 @@ class Page:
         self.data[offset:offset+8] = value.to_bytes(8, 'big')
         self.num_records += 1
         return offset
-    
+    #for changing the indirection column
+    def write_at_offset(self, value, offset):
+        self.data[offset:offset+8] = value.to_bytes(8, 'big')
+        return offset
     def read(self, offset):
         return int.from_bytes(self.data[offset:offset + 8], 'big')
