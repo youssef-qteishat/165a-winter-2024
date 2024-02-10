@@ -31,7 +31,8 @@ class Query:
     """
     def insert(self, *columns):
         schema_encoding = '0' * self.table.num_columns
-        pass
+        return self.table.insert(list(columns))
+        
 
     
     """
@@ -67,7 +68,9 @@ class Query:
     # Returns False if no records exist with given key or if the target record cannot be accessed due to 2PL locking
     """
     def update(self, primary_key, *columns):
-        pass
+        #assume primary key is immutable
+        rid = self.table.locate(self.table.key, primary_key)
+        return self.table.update_record(list(columns), rid)
 
     
     """

@@ -29,7 +29,8 @@ class Table:
         self.page_directory = {}
         self.page_ranges = [Range(4 + self.num_columns, self.key)]
         self.last_rid = 0
-        #self.index = Index(self)
+        self.index = Index(self)
+        self.deletedrids = {}
 
     def insert_record(self, columns):
         """
@@ -91,28 +92,35 @@ class Table:
         # load the colomn daat into a list
         #schema encoding will be added later :), can prob just check which columns are not null but i'm lazy
         column_values = [lastrid, rid, int(1000000 * time()), 0] + columns
-        for i in range(len(column_values)):
+        for i in range(4, len(column_values)):
             if column_values[i] == None:
                 column_values[i] = lastrecord[i]
-
+            else:
+                self.index.updated[i-4] = 1
         # add the base record and remember its location
         tail_page_number, offset = page_range.add_tail_record(column_values)
         page_range_number = len(self.page_ranges) - 1
 
         # store the rid and location of the record in the page directory
         self.page_directory.update({rid: [page_range_number, tail_page_number, offset]})
-
+        
+        
         # return the rid to the caller (mostly used for testing right now)
         return rid
+
     def get_indirection(self, rid):
         page_range_number, base_page_number, offset = self.page_directory.get(rid)
         return self.page_ranges[page_range_number].read_base_record(base_page_number, offset)[0]
     def get_new_rid(self):
 
         # update and return the rid
+        if(len(self.deletedrids) > 0):
+            return self.deletedrids.pop()
         self.last_rid += 1
         return self.last_rid
-    
+    #just making it invalid
+    def delete_rid(self, rid):
+        self.page_directory.remove(rid)
     def __merge(self):
         #milestone2 we don't care lets goo
         print("merge is happening")
