@@ -12,3 +12,14 @@ table.update_record([42, None, 234, None, 1], rid2)
 # first 4 columns are meta data, last 5 are the contents
 print(table.read_record(rid1))
 print(table.read_record(rid2))
+
+print("Deleting record...")
+table.delete_record(rid1)
+try :
+    table.read_record(rid1)
+except Exception as e:
+    print(e)
+    print("Could not read deleted record, this is the correct behavior")
+
+rid1 = table.insert_record([11, 12, 13, 14, 15])
+print(table.read_record(rid1))

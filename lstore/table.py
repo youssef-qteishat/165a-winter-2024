@@ -30,7 +30,7 @@ class Table:
         self.page_ranges = [Range(4 + self.num_columns, self.key)]
         self.last_rid = 0
         self.index = Index(self)
-        self.deletedrids = {}
+        self.deletedrids = []
 
     def insert_record(self, columns):
         """
@@ -75,7 +75,7 @@ class Table:
         # read the record from the location
             return base_record
         
-                # get the location from the page directory
+        # get the location from the page directory
         page_range_number, base_page_number, offset = self.page_directory.get(tail_record_id)
         # get the tail record columns
         tail_columns = self.page_ranges[page_range_number].read_tail_record(base_page_number, offset)
@@ -133,7 +133,25 @@ class Table:
 
         # return the rid to the caller (mostly used for testing right now)
         return rid
+    
+    def delete_record(self, rid):
 
+        # if the rid is not in the page directory, return false
+        if (rid not in self.page_directory.keys()):
+            return False
+        
+        # get the location of the page
+        page_range_number, base_page_number, offset = self.page_directory.get(rid)
+        
+        # change the indirection column to a 0 value
+        self.page_ranges[page_range_number].change_indirection(base_page_number, offset, 0)
+
+        # remove the page from the page directory
+        self.delete_rid(rid)
+
+        # if the indirection was successfully changed return true
+        return True
+        
     def get_indirection(self, rid):
         page_range_number, base_page_number, offset = self.page_directory.get(rid)
         return self.page_ranges[page_range_number].read_base_record(base_page_number, offset)[INDIRECTION_COLUMN]
@@ -146,11 +164,11 @@ class Table:
         self.last_rid += 1
         return self.last_rid
 
-    #just making it invalid
     def delete_rid(self, rid):
-        self.page_directory.remove(rid)
+        self.page_directory.pop(rid)
+        self.deletedrids.insert(0, rid)
+
     def __merge(self):
         #milestone2 we don't care lets goo
         print("merge is happening")
         pass
- 
