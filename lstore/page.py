@@ -12,6 +12,8 @@ class Page:
 
     def write(self, value):
         #all columns are 64 bit ints so 8 bytes
+        if value == None:
+            value = 0
         offset = self.num_records*8
         self.data[offset:offset+8] = value.to_bytes(8, 'big')
         self.num_records += 1

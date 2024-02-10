@@ -96,9 +96,6 @@ class Range:
             # write to it
             offset = page.write(columns[column_num])
 
-            # increase the number of records
-            self.num_records += 1
-
         # return the offset and page number within the page range
         return self.current_tail_page, offset
 
@@ -115,6 +112,10 @@ class Range:
     #prolly make config file to store all the values like indirectioncolumn later
     def change_indirection(self, base_page_number, offset, value):
         self.base_pages[0][base_page_number].write_at_offset(value, offset)
+        return True
+    
+    def change_schema_encoding(self, base_page_number, offset, value):
+        self.base_pages[3][base_page_number].write_at_offset(value, offset)
         return True
 
     def read_tail_record(self, tail_page_number, offset):
