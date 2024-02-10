@@ -71,18 +71,18 @@ class Table:
         # get the indirection column and schema encoding
         tail_record_id = base_record[INDIRECTION_COLUMN]
 
-        # get the location from the page directory
-        page_range_number, base_page_number, offset = self.page_directory.get(tail_record_id)
-        if tail_record_id == 0:
+        if tail_record_id == rid:
         # read the record from the location
             return base_record
         
+                # get the location from the page directory
+        page_range_number, base_page_number, offset = self.page_directory.get(tail_record_id)
         # get the tail record columns
         tail_columns = self.page_ranges[page_range_number].read_tail_record(base_page_number, offset)
 
         # use the schema encoding to reconstruct full record
         for i in range(4, len(tail_columns)):
-            if (not (schema_encoding >> (len(tail_columns) - (i + 1)) & 1)):
+            if (not (1 & (schema_encoding >> (len(tail_columns) - (i + 1))))):
                 tail_columns[i] = base_record[i]
 
         return tail_columns
@@ -120,11 +120,9 @@ class Table:
         #schema encoding will be added later :), can prob just check which columns are not null but i'm lazy
         tail_columns = [lastrid, rid, int(1000000 * time()), schema_encoding] + columns
         for i in range(4, len(tail_columns)):
-            if (schema_encoding >> (len(tail_columns) - (i + 1)) & 1):
+            if (1 & (schema_encoding >> (len(tail_columns) - (i + 1)))):
                 if tail_columns[i] == None:
                     tail_columns[i] = lastrecord[i]
-                else:
-                    self.index.updated[i-4] = 1
 
         # add the tail record and remember its location
         tail_page_number, offset = page_range.add_tail_record(tail_columns)
