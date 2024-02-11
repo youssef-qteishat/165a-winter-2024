@@ -46,7 +46,7 @@ class Index:
             self.addToIndex(column_number, val, rid)
         pass
 
-    def addToIndex(self, column_number, val, rid)
+    def addToIndex(self, column_number, val, rid):
         #don't do anything if index doesn't exist
         if(self.indices[column_number] == None):
             return False
