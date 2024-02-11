@@ -13,9 +13,10 @@ class Index:
         #for later  we'll prob just use only the key column for milestone 1 lol
         self.indices = [None] *  table.num_columns
         #creates index for key column
-        #self.indices[table.key] = OOBTree()
+        self.indices[table.key] = OOBTree()
         #if value got updated need to reindex
         self.updated = [0] * table.num_columns
+        self.table = table
         pass
 
     """
@@ -37,19 +38,33 @@ class Index:
     """
 
     def create_index(self, column_number):
+        drop_index(column_number)
+        self.indices[column_number] = OOBTree()
         #figure out after we get organization done
+        for rid in self.table.page_directory:
+            val = self.table.read_record(rid)[column_number]
+            self.addToIndex(column_number, val, rid)
         pass
 
+    def addToIndex(self, column_number, val, rid)
+        #don't do anything if index doesn't exist
+        if(self.indices[column_number] == None):
+            return False
+        if self.table.page_directory.get(val) == None:
+            self.indices[column_number][val] = {rid}
+        else:
+            self.indices[column_number][val].add(rid)
+        return True
     """
     # optional: Drop index of specific column
     """
 
     def drop_index(self, column_number):
-        self.indices[column] = None
-        self.updated[column] = 0
+        self.indices[column_number] = None
+        self.updated[column_number] = 0
     
     def update_index(self, column_number):
-        if self.indices[column] is not None or self.updated[column] == 1:
-            self.drop_index(column)
-            self.create_index(column)
-            self.updated[column] = 0
+        if self.indices[column_number] is not None or self.updated[column_number] == 1:
+            self.drop_index(column_number)
+            self.create_index(column_number)
+            self.updated[column_number] = 0

@@ -58,6 +58,10 @@ class Table:
 
         # store the rid and location of the record in the page directory
         self.page_directory.update({rid: [page_range_number, base_page_number, offset]})
+        
+        #add to index
+        for i in range(len(columns)):
+            self.index.addToIndex(i, columns[i], rid)
 
         # return the rid to the caller (mostly used for testing right now)
         return rid
