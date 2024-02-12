@@ -26,6 +26,7 @@ class Table:
         self.name = name
         self.key = key
         self.num_columns = num_columns
+        self.baserids = []
         self.page_directory = {}
         self.page_ranges = [Range(4 + self.num_columns, self.key)]
         self.last_rid = 0
@@ -58,7 +59,7 @@ class Table:
 
         # store the rid and location of the record in the page directory
         self.page_directory.update({rid: [page_range_number, base_page_number, offset]})
-        
+        self.baserids.append(rid)
         #add to index
         for i in range(len(columns)):
             self.index.addToIndex(i, columns[i], rid)
@@ -114,14 +115,13 @@ class Table:
 
         # get a new rid
         rid = self.get_new_rid()
-
+        #print(columns, rid)
         # update the schema encoding and indirection of the base page
         basepagerange, basepagenum, offset = self.page_directory[baserid]
         self.page_ranges[basepagerange].change_indirection(basepagenum, offset, rid)
         self.page_ranges[basepagerange].change_schema_encoding(basepagenum, offset, schema_encoding)
 
         # load the colomn daat into a list
-        #schema encoding will be added later :), can prob just check which columns are not null but i'm lazy
         tail_columns = [lastrid, rid, int(1000000 * time()), schema_encoding] + columns
         for i in range(4, len(tail_columns)):
             if (1 & (schema_encoding >> (len(tail_columns) - (i + 1)))):
@@ -134,8 +134,8 @@ class Table:
 
         # store the rid and location of the record in the page directory
         self.page_directory.update({rid: [page_range_number, tail_page_number, offset]})
-
         # return the rid to the caller (mostly used for testing right now)
+        #print(self.page_directory)
         return rid
     
     def delete_record(self, rid):
@@ -169,6 +169,7 @@ class Table:
         return self.last_rid
 
     def delete_rid(self, rid):
+        self.baserids.remove(rid)
         self.page_directory.pop(rid)
         self.deletedrids.insert(0, rid)
 

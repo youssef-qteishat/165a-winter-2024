@@ -1,5 +1,7 @@
-from lstore.table import Table, Record
-from lstore.index import Index
+#from lstore.table import Table, Record
+#from lstore.index import Index
+from table import Table, Record
+from index import Index
 
 
 class Query:
@@ -30,8 +32,9 @@ class Query:
     # Returns False if insert fails for whatever reason
     """
     def insert(self, *columns):
+        #returns rid for now
         schema_encoding = '0' * self.table.num_columns
-        return self.table.insert(list(columns))
+        return self.table.insert_record(list(columns))
         
 
     
@@ -45,14 +48,18 @@ class Query:
     # Assume that select will never be called on a key that doesn't exist
     """
     def select(self, search_key, search_key_index, projected_columns_index):
+        #print("______________________--")
         rids = self.table.index.locate(search_key_index, search_key)
         records = []
         for rid in rids:
             record = self.table.read_record(rid)
+            #print(record, rid)
+            #if record[1] == rid:
             cols = []
             for i, p in enumerate(projected_columns_index):
-                if p: cols.append(i)
-        records.append(cols)
+                #print(i, p)
+                if p: cols.append(record[i+4])
+            records.append(cols)
         return records
 
     
