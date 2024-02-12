@@ -21,7 +21,14 @@ class Query:
     # Return False if record doesn't exist or is locked due to 2PL
     """
     def delete(self, primary_key):
-        pass
+        rid = self.table.index.locate(self.table.key, primary_key)
+
+        if len(rid) > 1:
+            return False
+        
+        self.table.delete_record(rid)
+        return True
+
     
     
     """
