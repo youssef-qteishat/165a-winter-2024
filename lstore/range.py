@@ -1,4 +1,4 @@
-from page import Page
+from lstore.page import Page
 
 MAXRECORDS = 65536
 
@@ -42,7 +42,7 @@ class Range:
 
                 # then add a base page
                 self.add_base_page
-                page = self.num_base_pages[column_num][self.current_base_page]
+                page = self.base_pages[column_num][self.current_base_page]
 
             # write to it
             offset = page.write(columns[column_num])
@@ -91,7 +91,7 @@ class Range:
 
                 # then add a base page
                 self.add_tail_page
-                page = self.num_tail_pages[column_num][self.current_tail_page]
+                page = self.tail_pages[column_num][self.current_tail_page]
 
             # write to it
             offset = page.write(columns[column_num])

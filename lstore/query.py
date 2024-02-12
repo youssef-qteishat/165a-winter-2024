@@ -1,7 +1,5 @@
-#from lstore.table import Table, Record
-#from lstore.index import Index
-from table import Table, Record
-from index import Index
+from lstore.table import Table, Record
+from lstore.index import Index
 
 
 class Query:
@@ -84,8 +82,10 @@ class Query:
     """
     def update(self, primary_key, *columns):
         #assume primary key is immutable
-        rid = self.table.locate(self.table.key, primary_key)
-        return self.table.update_record(list(columns), rid)
+        rid = self.table.index.locate(self.table.key, primary_key)
+        if len(rid) > 1:
+            return False
+        return self.table.update_record(list(columns), list(rid)[0])
 
     
     """
