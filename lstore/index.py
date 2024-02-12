@@ -52,7 +52,7 @@ class Index:
         self.indices[column_number] = OOBTree()
         #figure out after we get organization done
         for rid in self.table.baserids:
-            val = self.table.read_record(rid)[column_number+4]
+            val = self.table.read_record(rid, 0)[column_number+4]
             self.addToIndex(column_number, val, rid)
         #print(list(self.indices[column_number].keys()))
 

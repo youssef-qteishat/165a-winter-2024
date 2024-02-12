@@ -50,7 +50,7 @@ class Query:
         rids = self.table.index.locate(search_key_index, search_key)
         records = []
         for rid in rids:
-            record = self.table.read_record(rid)
+            record = self.table.read_record(rid, 0)
             #print(record, rid)
             #if record[1] == rid:
             cols = []
@@ -72,7 +72,18 @@ class Query:
     # Assume that select will never be called on a key that doesn't exist
     """
     def select_version(self, search_key, search_key_index, projected_columns_index, relative_version):
-        pass
+        rids = self.table.index.locate(search_key_index, search_key)
+        records = []
+        for rid in rids:
+            record = self.table.read_record(rid, relative_version)
+            #print(record, rid)
+            #if record[1] == rid:
+            cols = []
+            for i, p in enumerate(projected_columns_index):
+                #print(i, p)
+                if p: cols.append(record[i+4])
+            records.append(Record(rid, self.table.key, cols))
+        return records
 
     
     """
@@ -102,7 +113,7 @@ class Query:
         s = 0
         #print("records:")
         for rid in rids:
-            record = self.table.read_record(rid)
+            record = self.table.read_record(rid, 0)
             #print(record)
             s = s + record[aggregate_column_index+4]
         return s
@@ -118,7 +129,15 @@ class Query:
     # Returns False if no record exists in the given range
     """
     def sum_version(self, start_range, end_range, aggregate_column_index, relative_version):
-        pass
+        rids = self.table.index.locate_range(start_range, end_range, self.table.key)
+        records = []
+        s = 0
+        #print("records:")
+        for rid in rids:
+            record = self.table.read_record(rid, relative_version)
+            #print(record)
+            s = s + record[aggregate_column_index+4]
+        return s
 
     
     """

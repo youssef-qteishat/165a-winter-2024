@@ -67,7 +67,7 @@ class Table:
         # return the rid to the caller (mostly used for testing right now)
         return rid
 
-    def read_record(self, rid):
+    def read_record(self, rid, version):
         # get the location of the base page by its rid
         page_range_number, base_page_number, offset = self.page_directory.get(rid)
         base_record = self.page_ranges[page_range_number].read_base_record(base_page_number, offset)
@@ -76,22 +76,21 @@ class Table:
         # get the indirection column and schema encoding
         tail_record_id = base_record[INDIRECTION_COLUMN]
 
-        if tail_record_id == rid:
-        # read the record from the location
-            return base_record
-        
-        # get the location from the page directory
-        page_range_number, base_page_number, offset = self.page_directory.get(tail_record_id)
-        # get the tail record columns
-        tail_columns = self.page_ranges[page_range_number].read_tail_record(base_page_number, offset)
-
-        # use the schema encoding to reconstruct full record
-        for i in range(4, len(tail_columns)):
-            if (not (1 & (schema_encoding >> (len(tail_columns) - (i + 1))))):
-                tail_columns[i] = base_record[i]
+        for i in range(version-1, 0):
+            if tail_record_id == rid:
+            # read the record from the location
+                return base_record
+            # get the location from the page directory
+            page_range_number, base_page_number, offset = self.page_directory.get(tail_record_id)
+            # get the tail record columns
+            tail_columns = self.page_ranges[page_range_number].read_tail_record(base_page_number, offset)
+            #use the schema encoding to reconstruct full record
+            for i in range(4, len(tail_columns)):
+                if (not (1 & (schema_encoding >> (len(tail_columns) - (i + 1))))):
+                    tail_columns[i] = base_record[i]
+            tail_record_id = tail_columns[INDIRECTION_COLUMN]
 
         return tail_columns
-                
 
     def update_record(self, columns, baserid):
 
@@ -102,10 +101,12 @@ class Table:
         # get the latest range
         page_range = self.page_ranges[-1]
         #print(baserid)
-        lastrecord = self.read_record(baserid)
+        lastrecord = self.read_record(baserid, 0)
         lastrid = lastrecord[RID_COLUMN]
-
         # get the schema encoding
+        #page_range_number, base_page_number, offset = self.page_directory.get(lastrid)
+        #tail_columns = self.page_ranges[page_range_number].read_tail_record(base_page_number, offset)
+        #print(tail_columns)
         binary_string = ''
         for value in columns:
             if value is not None:
@@ -125,12 +126,15 @@ class Table:
         # load the colomn daat into a list
         tail_columns = [lastrid, rid, int(1000000 * time()), schema_encoding] + columns
         for i in range(4, len(tail_columns)):
-            if (1 & (schema_encoding >> (len(tail_columns) - (i + 1)))):
-                if tail_columns[i] == None:
-                    tail_columns[i] = lastrecord[i]
-                else:
-                    self.index.updated[i-4] = 1
-
+            #this specific line messes up my implementation of version because if you go back to previous versions they're just the changed tail columns
+            #if (1 & (schema_encoding >> (len(tail_columns) - (i + 1)))):
+            if tail_columns[i] == None:
+                tail_columns[i] = lastrecord[i]
+                #print(i)
+            else:
+                self.index.updated[i-4] = 1
+        #print(lastrecord)
+        #print(tail_columns)
         # add the tail record and remember its location
         tail_page_number, offset = page_range.add_tail_record(tail_columns)
         page_range_number = len(self.page_ranges) - 1
@@ -138,7 +142,10 @@ class Table:
         # store the rid and location of the record in the page directory
         self.page_directory.update({rid: [page_range_number, tail_page_number, offset]})
         # return the rid to the caller (mostly used for testing right now)
-        #print(self.page_directory)
+        #print(self.page_directory)a
+        #page_range_number, base_page_number, offset = self.page_directory.get(lastrid)
+        #tail_columns = self.page_ranges[page_range_number].read_tail_record(base_page_number, offset)
+        #print(tail_columns)
         return rid
     
     def delete_record(self, rid):
