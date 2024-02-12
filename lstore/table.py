@@ -1,6 +1,6 @@
-from index import Index
+from lstore.index import Index
 from time import time
-from range import Range
+from lstore.range import Range
 
 INDIRECTION_COLUMN = 0
 RID_COLUMN = 1
@@ -101,6 +101,7 @@ class Table:
 
         # get the latest range
         page_range = self.page_ranges[-1]
+        #print(baserid)
         lastrecord = self.read_record(baserid)
         lastrid = lastrecord[RID_COLUMN]
 
