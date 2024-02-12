@@ -2,7 +2,6 @@
 #from https://btrees.readthedocs.io/en/latest/index.html
 from BTrees.OOBTree import OOBTree
 
-
 """
 A data strucutre holding indices for various columns of a table. Key column should be indexd by default, other columns can be indexed through this object. Indices are usually B-Trees, but other data structures can be used as well.
 """
@@ -14,7 +13,10 @@ class Index:
         self.indices = [None] *  table.num_columns
         self.updated = [0] * table.num_columns
         #creates index for key columnu
-        self.create_index(table.key)
+        #self.create_index(table.key)
+        #create index for all
+        for i in range(table.num_columns):
+            self.create_index(i)
         #if value got updated need to reindex
         self.updated = [0] * table.num_columns
         pass
@@ -33,12 +35,19 @@ class Index:
     """
 
     def locate_range(self, begin, end, column):
-        return self.indices[column].values(min = begin, max = end)
+        self.update_index(column)
+        #print(list(self.indices[column].keys()))
+        ridlists = self.indices[column].values(min = begin, max = end)
+        rv = []
+        for ridlist in ridlists:
+            rv.extend(ridlist)
+        return rv
     """
     # optional: Create index on specific column
     """
 
     def create_index(self, column_number):
+        #print(column_number)
         self.drop_index(column_number)
         self.indices[column_number] = OOBTree()
         #figure out after we get organization done
@@ -66,6 +75,7 @@ class Index:
     
     def update_index(self, column_number):
         if self.indices[column_number] is None or self.updated[column_number] == 1:
+            #print("???")
             self.drop_index(column_number)
             self.create_index(column_number)
             self.updated[column_number] = 0

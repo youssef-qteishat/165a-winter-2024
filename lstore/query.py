@@ -57,7 +57,7 @@ class Query:
             for i, p in enumerate(projected_columns_index):
                 #print(i, p)
                 if p: cols.append(record[i+4])
-            records.append(cols)
+            records.append(Record(rid, self.table.key, cols))
         return records
 
     
@@ -97,7 +97,15 @@ class Query:
     # Returns False if no record exists in the given range
     """
     def sum(self, start_range, end_range, aggregate_column_index):
-        pass
+        rids = self.table.index.locate_range(start_range, end_range, self.table.key)
+        records = []
+        s = 0
+        #print("records:")
+        for rid in rids:
+            record = self.table.read_record(rid)
+            #print(record)
+            s = s + record[aggregate_column_index+4]
+        return s
 
     
     """

@@ -128,6 +128,8 @@ class Table:
             if (1 & (schema_encoding >> (len(tail_columns) - (i + 1)))):
                 if tail_columns[i] == None:
                     tail_columns[i] = lastrecord[i]
+                else:
+                    self.index.updated[i-4] = 1
 
         # add the tail record and remember its location
         tail_page_number, offset = page_range.add_tail_record(tail_columns)
