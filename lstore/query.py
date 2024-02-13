@@ -26,7 +26,7 @@ class Query:
         if len(rid) > 1:
             return False
         
-        self.table.delete_record(rid)
+        self.table.delete_record(list(rid)[0])
         return True
 
     
