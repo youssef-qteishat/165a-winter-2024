@@ -85,6 +85,7 @@ class Table:
             # get the tail record columns
             tail_columns = self.page_ranges[page_range_number].read_tail_record(base_page_number, offset)
             #use the schema encoding to reconstruct full record
+            schema_encoding = tail_columns[SCHEMA_ENCODING_COLUMN]
             for i in range(4, len(tail_columns)):
                 if (not (1 & (schema_encoding >> (len(tail_columns) - (i + 1))))):
                     tail_columns[i] = base_record[i]
@@ -127,12 +128,12 @@ class Table:
         tail_columns = [lastrid, rid, int(1000000 * time()), schema_encoding] + columns
         for i in range(4, len(tail_columns)):
             #this specific line messes up my implementation of version because if you go back to previous versions they're just the changed tail columns
-            #if (1 & (schema_encoding >> (len(tail_columns) - (i + 1)))):
-            if tail_columns[i] == None:
-                tail_columns[i] = lastrecord[i]
-                #print(i)
-            else:
-                self.index.updated[i-4] = 1
+            if (1 & (schema_encoding >> (len(tail_columns) - (i + 1)))):
+                if tail_columns[i] == None:
+                    tail_columns[i] = lastrecord[i]
+                    #print(i)
+                else:
+                    self.index.updated[i-4] = 1
         #print(lastrecord)
         #print(tail_columns)
         # add the tail record and remember its location
