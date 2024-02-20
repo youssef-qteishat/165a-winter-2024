@@ -13,7 +13,6 @@ class Index:
         self.indices = [None] *  table.num_columns
         self.updated = [0] * table.num_columns
         #creates index for key columnu
-        #self.create_index(table.key)
         #create index for all
         for i in range(table.num_columns):
             self.create_index(i)
@@ -27,7 +26,6 @@ class Index:
 
     def locate(self, column, value):
         self.update_index(column)
-        #print(self.indices[column].get(value))
         return self.indices[column].get(value)
 
     """
@@ -36,7 +34,6 @@ class Index:
 
     def locate_range(self, begin, end, column):
         self.update_index(column)
-        #print(list(self.indices[column].keys()))
         ridlists = self.indices[column].values(min = begin, max = end)
         rv = []
         for ridlist in ridlists:
@@ -47,14 +44,12 @@ class Index:
     """
 
     def create_index(self, column_number):
-        #print(column_number)
         self.drop_index(column_number)
         self.indices[column_number] = OOBTree()
         #figure out after we get organization done
         for rid in self.table.baserids:
             val = self.table.read_record(rid, 0)[column_number+4]
             self.addToIndex(column_number, val, rid)
-        #print(list(self.indices[column_number].keys()))
 
     def addToIndex(self, column_number, val, rid):
         #don't do anything if index doesn't exist
@@ -75,7 +70,6 @@ class Index:
     
     def update_index(self, column_number):
         if self.indices[column_number] is None or self.updated[column_number] == 1:
-            #print("???")
             self.drop_index(column_number)
             self.create_index(column_number)
             self.updated[column_number] = 0

@@ -53,16 +53,12 @@ class Query:
     # Assume that select will never be called on a key that doesn't exist
     """
     def select(self, search_key, search_key_index, projected_columns_index):
-        #print("______________________--")
         rids = self.table.index.locate(search_key_index, search_key)
         records = []
         for rid in rids:
             record = self.table.read_record(rid, 0)
-            #print(record, rid)
-            #if record[1] == rid:
             cols = []
             for i, p in enumerate(projected_columns_index):
-                #print(i, p)
                 if p: cols.append(record[i+4])
             records.append(Record(rid, self.table.key, cols))
         return records
@@ -83,11 +79,8 @@ class Query:
         records = []
         for rid in rids:
             record = self.table.read_record(rid, relative_version)
-            #print(record, rid)
-            #if record[1] == rid:
             cols = []
             for i, p in enumerate(projected_columns_index):
-                #print(i, p)
                 if p: cols.append(record[i+4])
             records.append(Record(rid, self.table.key, cols))
         return records
@@ -99,7 +92,7 @@ class Query:
     # Returns False if no records exist with given key or if the target record cannot be accessed due to 2PL locking
     """
     def update(self, primary_key, *columns):
-        #assume primary key is immutable
+        #assume primary key is immutable/actually idk
         rid = self.table.index.locate(self.table.key, primary_key)
         if len(rid) > 1:
             return False
@@ -118,10 +111,8 @@ class Query:
         rids = self.table.index.locate_range(start_range, end_range, self.table.key)
         records = []
         s = 0
-        #print("records:")
         for rid in rids:
             record = self.table.read_record(rid, 0)
-            #print(record)
             s = s + record[aggregate_column_index+4]
         return s
 
@@ -139,10 +130,8 @@ class Query:
         rids = self.table.index.locate_range(start_range, end_range, self.table.key)
         records = []
         s = 0
-        #print("records:")
         for rid in rids:
             record = self.table.read_record(rid, relative_version)
-            #print(record)
             s = s + record[aggregate_column_index+4]
         return s
 

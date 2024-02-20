@@ -95,7 +95,6 @@ class Range:
 
             # write to it
             offset = page.write(columns[column_num])
-            #print(offset)
         # return the offset and page number within the page range
         return self.current_tail_page, offset
 
@@ -119,7 +118,6 @@ class Range:
         return True
 
     def read_tail_record(self, tail_page_number, offset):
-        #print("???")
         # declare a variable to hold the record contents
         columns = []
 
