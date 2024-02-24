@@ -18,7 +18,6 @@ class Range:
         # create a place to hold the pages
         self.base_pages = {}
         self.tail_pages = {}
-
         # add the first empty base page
         for column_num in range(num_columns):
             self.base_pages[column_num] = [Page()]
@@ -30,7 +29,6 @@ class Range:
         self.current_tail_page = 0
 
     def add_base_record(self, columns):
-
         # update each of the columns
         for column_num in range(self.num_columns):
 

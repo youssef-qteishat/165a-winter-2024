@@ -83,9 +83,8 @@ for key in records:
     if error:
         print('update error on', records[key], 'and', updated_columns, ':', record, ', correct:', records[key])
     else:
+        #print('update on', original, 'and', updated_columns, ':', record)
         pass
-        # print('update on', original, 'and', updated_columns, ':', record)
-    
     #check version 0 for record
     record = query.select_version(key, 0, [1, 1, 1, 1, 1], 0)[0]
     error = False

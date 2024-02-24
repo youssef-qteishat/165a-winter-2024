@@ -59,7 +59,7 @@ class Query:
             record = self.table.read_record(rid, 0)
             cols = []
             for i, p in enumerate(projected_columns_index):
-                if p: cols.append(record[i+4])
+                if p: cols.append(record[i+5])
             records.append(Record(rid, self.table.key, cols))
         return records
 
@@ -81,7 +81,7 @@ class Query:
             record = self.table.read_record(rid, relative_version)
             cols = []
             for i, p in enumerate(projected_columns_index):
-                if p: cols.append(record[i+4])
+                if p: cols.append(record[i+5])
             records.append(Record(rid, self.table.key, cols))
         return records
 
@@ -113,7 +113,7 @@ class Query:
         s = 0
         for rid in rids:
             record = self.table.read_record(rid, 0)
-            s = s + record[aggregate_column_index+4]
+            s = s + record[aggregate_column_index+5]
         return s
 
     
@@ -132,7 +132,7 @@ class Query:
         s = 0
         for rid in rids:
             record = self.table.read_record(rid, relative_version)
-            s = s + record[aggregate_column_index+4]
+            s = s + record[aggregate_column_index+5]
         return s
 
     
