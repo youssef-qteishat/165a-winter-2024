@@ -183,7 +183,7 @@ class Table:
         self.deletedrids.insert(0, rid)
 
     def __merge(self):
-        print("merge is happening")
+        #print("merge is happening")
         mergedrids = []
         #new_page_ranges = [Range(5 + self.num_columns, self.key)]
         #if self.page_ranges[-1].has_capacity() != True:
@@ -191,29 +191,17 @@ class Table:
 
         for page_range in reversed(self.page_ranges):
             for tail_page_num in range(page_range.current_tail_page+1):
-                offset = PAGESIZE
+                offset = page_range.tail_pages[0][tail_page_num].num_records*8
                 while offset > 0:
                     offset -= 8
                     tail_record = page_range.read_tail_record(tail_page_num, offset)
                     base_rid = tail_record[BASERID_COLUMN]
-                    if base_rid == 0:
-                        continue
                     #only merge if not already visited
                     if base_rid not in mergedrids:
-                        if(base_rid == 0):
-                            print("base_rid=", base_rid)
-                        #print(mergedrids)
-                            print("tailrecord=", tail_record)
-                            print("tail_page_num", tail_page_num, "offset", offset, page_range.tail_pages[tail_page_num][0].num_records*8)
-                            while offset > 0:
-                                offset-=8
-                                print(page_range.read_tail_record(tail_page_num, offset))
-
                         base_page_range, base_page_num, base_offset = self.page_directory[base_rid]
-
                         mergedrids.append(base_rid)
                         #only merge full base pages according to piazza https://piazza.com/class/lr5k6jd9o5k5vs/post/47
-                        if self.page_ranges[base_page_range].base_pages[base_page_num][0].has_capacity:
+                        if self.page_ranges[base_page_range].base_pages[0][base_page_num].has_capacity:
                             #pass
                             continue
 
@@ -238,6 +226,7 @@ class Table:
                         self.page_directory.update({base_rid: [page_range_number, new_page_number, new_offset]})
                         #print("merged", base_rid)
                         #print(self.read_record(base_rid))
+                        
 
 
     #test function to allow me to call merge in test functions
