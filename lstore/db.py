@@ -1,4 +1,6 @@
 from lstore.table import Table
+import os
+import pickle
 
 class Database():
 
@@ -8,10 +10,27 @@ class Database():
 
     # Not required for milestone1
     def open(self, path):
-        pass
+        if not os.path.exists(path):
+            os.mkdir(path)
+
+        else:
+            path = os.path.join(path, "metadata_file.pkl")
+            file_open = open(path, 'rb')
+            metadata = pickle.load(file_open)
+            for table_name, table_metadata in metadata.items():
+                table = self.create_new_table(*table_metadata[:3])
+                self.set_table_attributes(table, table_metadata)
+            file_open.close()
+
+    def set_table_attributes(self, table, metadata):
+        table.page_directory = metadata[3]
+            
 
     def close(self):
-        pass
+        metadata = {}
+        m_file_open = open("metadata_file.pkl", 'wb')
+        pickle.dump(self, m_file_open)
+        m_file_open.close()
 
     """
     # Creates a new table
