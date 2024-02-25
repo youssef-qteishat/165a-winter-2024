@@ -26,6 +26,7 @@ class Database():
             
 
     def close(self):
+        self.bufferpool.dump_pool()
         path = os.path.join(self.path, "metadata_file.pkl")
         m_file_open = open(path, 'wb')
         pickle.dump(self.tables, m_file_open)
