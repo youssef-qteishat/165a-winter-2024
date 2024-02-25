@@ -28,6 +28,7 @@ class Table:
         self.last_rid = 0
         self.index = Index(self)
         self.deletedrids = []
+        self.update_count = 0
 
     def insert_record(self, columns):
         """
@@ -68,10 +69,10 @@ class Table:
         page_range_number, base_page_number, offset = self.page_directory.get(rid)
         base_record = self.page_ranges[page_range_number].read_base_record(base_page_number, offset)
         schema_encoding = base_record[SCHEMA_ENCODING_COLUMN]
-        print("read base", base_record)
+        #print("read base", base_record)
         # get the indirection column and schema encoding
         tail_record_id = base_record[INDIRECTION_COLUMN]
-        print("tid = ", tail_record_id)
+        #print("tid = ", tail_record_id)
         for i in range(version-1, 0):
             if tail_record_id == rid:
             # read the record from the location
@@ -90,7 +91,7 @@ class Table:
         return tail_columns
 
     def update_record(self, columns, baserid):
-
+        
         # if the page range does not have capacity create a new one
         if self.page_ranges[-1].has_capacity() != True:
             self.page_ranges.append(Range(5 + self.num_columns, self.key))
@@ -132,7 +133,7 @@ class Table:
                     tail_columns[i] = lastrecord[i]
                 else:
                     self.index.updated[i-5] = 1
-        print(tail_columns)
+        #print(tail_columns)
         # add the tail record and remember its location
         tail_page_number, offset = page_range.add_tail_record(tail_columns)
         page_range_number = len(self.page_ranges) - 1
@@ -140,6 +141,10 @@ class Table:
         # store the rid and location of the record in the page directory
         self.page_directory.update({rid: [page_range_number, tail_page_number, offset]})
         # return the rid to the caller (mostly used for testing right now)
+        self.update_count+=1
+        #print(self.update_count)
+        if(self.update_count > 100):
+            self.__merge()
         return rid
     
     def delete_record(self, rid):
@@ -178,7 +183,7 @@ class Table:
         self.deletedrids.insert(0, rid)
 
     def __merge(self):
-        print("merge is happening")
+        #print("merge is happening")
         mergedrids = []
         #new_page_ranges = [Range(5 + self.num_columns, self.key)]
         #if self.page_ranges[-1].has_capacity() != True:
@@ -186,43 +191,42 @@ class Table:
 
         for page_range in reversed(self.page_ranges):
             for tail_page_num in range(page_range.current_tail_page+1):
-                offset = page_range.tail_pages[tail_page_num][0].num_records*8
+                offset = page_range.tail_pages[0][tail_page_num].num_records*8
                 while offset > 0:
                     offset -= 8
                     tail_record = page_range.read_tail_record(tail_page_num, offset)
                     base_rid = tail_record[BASERID_COLUMN]
                     #only merge if not already visited
                     if base_rid not in mergedrids:
-                        print("base_rid=", base_rid)
-                        print(mergedrids)
-                        print("tailrecord=", tail_record)
                         base_page_range, base_page_num, base_offset = self.page_directory[base_rid]
                         mergedrids.append(base_rid)
                         #only merge full base pages according to piazza https://piazza.com/class/lr5k6jd9o5k5vs/post/47
-                        if self.page_ranges[base_page_range].base_pages[base_page_num][0].has_capacity:
-                            pass
+                        if self.page_ranges[base_page_range].base_pages[0][base_page_num].has_capacity:
+                            #pass
+                            continue
 
-                        base_record = self.page_ranges[base_page_range].read_tail_record(base_page_num, base_offset)
+                        base_record = self.page_ranges[base_page_range].read_base_record(base_page_num, base_offset)
                         new_columns = base_record[:5]
                         schema_encoding = tail_record[SCHEMA_ENCODING_COLUMN]
+                        #print("baserecord=", base_record)
                         for i in range(self.num_columns):
-                            if (1 & (schema_encoding >> (self.num_columns+5 - (i + 1)))):
+                            if (1 & (schema_encoding >> (self.num_columns - (i + 1)))):
                                 new_columns.append(tail_record[i+5])
                             else:
                                 new_columns.append(base_record[i+5])
-                        if new_page_ranges[-1].has_capacity() != True:
-                            new_page_ranges.append(Range(5 + self.num_columns, self.key))
-                        new_page_range = new_page_ranges[-1]
+                        #print("new cols", new_columns)
+                        if self.page_ranges[-1].has_capacity() != True:
+                            self.page_ranges.append(Range(5 + self.num_columns, self.key))
+                        page_range = self.page_ranges[-1]
 
-                        new_page_number, new_offset = new_page_range.add_base_record(new_columns)
-                        new_page_range_number = len(new_page_ranges) + len(self.page_ranges) - 1
-                        print("new page_range_num = ", new_page_range_number)
+                        new_page_number, new_offset = page_range.add_base_record(new_columns)
+                        page_range_number = len(self.page_ranges) - 1
+                        #print("new page_range_num = ", page_range_number)
                         # store the rid and location of the record in the page directory
-                        self.page_directory.update({base_rid: [new_page_range_number, new_page_number, offset]})
-                        print("merged", base_rid)
-        if new_page_ranges[0].num_records > 0:
-            self.page_ranges.extend(new_page_ranges)
-            print
+                        self.page_directory.update({base_rid: [page_range_number, new_page_number, new_offset]})
+                        #print("merged", base_rid)
+                        #print(self.read_record(base_rid))
+                        
 
 
     #test function to allow me to call merge in test functions
