@@ -10,6 +10,9 @@ class Record:
         self.rid = rid
         self.key = key
         self.columns = columns
+    
+    def __repr__(self):
+        return f"Record(rid={self.rid}, key={self.key}, columns={self.columns})"
 
 class Table:
 
@@ -24,7 +27,8 @@ class Table:
         self.num_columns = num_columns
         self.baserids = []
         self.page_directory = {}
-        self.page_ranges = [Range(5 + self.num_columns, self.key)]
+        self.page_ranges = []
+        self.page_ranges.append(Range(5 + self.num_columns, self.key, self.name, len(self.page_ranges)))
         self.last_rid = 0
         self.index = Index(self)
         self.deletedrids = []
@@ -39,7 +43,7 @@ class Table:
 
         # if the page range does not have capacity create a new one
         if self.page_ranges[-1].has_capacity() != True:
-            self.page_ranges.append(Range(5 + self.num_columns, self.key))
+            self.page_ranges.append(Range(5 + self.num_columns, self.key, self.name, len(self.page_ranges)))
 
         # get the latest range
         page_range = self.page_ranges[-1]
@@ -216,7 +220,7 @@ class Table:
                                 new_columns.append(base_record[i+5])
                         #print("new cols", new_columns)
                         if self.page_ranges[-1].has_capacity() != True:
-                            self.page_ranges.append(Range(5 + self.num_columns, self.key))
+                            self.page_ranges.append(Range(5 + self.num_columns, self.key, self.name, len(self.page_ranges)))
                         page_range = self.page_ranges[-1]
 
                         new_page_number, new_offset = page_range.add_base_record(new_columns)

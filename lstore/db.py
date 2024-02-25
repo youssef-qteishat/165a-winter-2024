@@ -1,4 +1,5 @@
 from lstore.table import Table
+from lstore.bufferpool import Bufferpool
 import os
 import pickle
 
@@ -6,30 +7,28 @@ class Database():
 
     def __init__(self):
         self.tables = []
-        pass
+        self.bufferpool = Bufferpool()
+        self.path = None
 
-    # Not required for milestone1
     def open(self, path):
         if not os.path.exists(path):
+            self.path = path
+            self.bufferpool.set_path(path)
             os.mkdir(path)
 
         else:
+            self.path = path
+            self.bufferpool.set_path(path)
             path = os.path.join(path, "metadata_file.pkl")
             file_open = open(path, 'rb')
-            metadata = pickle.load(file_open)
-            for table_name, table_metadata in metadata.items():
-                table = self.create_new_table(*table_metadata[:3])
-                self.set_table_attributes(table, table_metadata)
+            self.tables = pickle.load(file_open)
             file_open.close()
-
-    def set_table_attributes(self, table, metadata):
-        table.page_directory = metadata[3]
             
 
     def close(self):
-        metadata = {}
-        m_file_open = open("metadata_file.pkl", 'wb')
-        pickle.dump(self, m_file_open)
+        path = os.path.join(self.path, "metadata_file.pkl")
+        m_file_open = open(path, 'wb')
+        pickle.dump(self.tables, m_file_open)
         m_file_open.close()
 
     """
@@ -40,18 +39,26 @@ class Database():
     """
     def create_table(self, name, num_columns, key_index):
         table = Table(name, num_columns, key_index)
+        self.tables.append(table)
         return table
-
     
     """
     # Deletes the specified table
     """
     def drop_table(self, name):
-        pass
-
+        for table in self.tables:
+            if name == table.name:
+                self.tables.remove(table)
+                return True
+        
+        return False
     
     """
     # Returns table with the passed name
     """
     def get_table(self, name):
-        pass
+        for table in self.tables:
+            if name == table.name:
+                return table
+        
+        return False
