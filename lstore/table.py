@@ -28,6 +28,7 @@ class Table:
         self.last_rid = 0
         self.index = Index(self)
         self.deletedrids = []
+        self.update_count = 0
 
     def insert_record(self, columns):
         """
@@ -90,7 +91,7 @@ class Table:
         return tail_columns
 
     def update_record(self, columns, baserid):
-
+        
         # if the page range does not have capacity create a new one
         if self.page_ranges[-1].has_capacity() != True:
             self.page_ranges.append(Range(5 + self.num_columns, self.key))
@@ -140,6 +141,10 @@ class Table:
         # store the rid and location of the record in the page directory
         self.page_directory.update({rid: [page_range_number, tail_page_number, offset]})
         # return the rid to the caller (mostly used for testing right now)
+        self.update_count+=1
+        #print(self.update_count)
+        if(self.update_count > 100):
+            self.__merge()
         return rid
     
     def delete_record(self, rid):
@@ -186,17 +191,26 @@ class Table:
 
         for page_range in reversed(self.page_ranges):
             for tail_page_num in range(page_range.current_tail_page+1):
-                offset = page_range.tail_pages[tail_page_num][0].num_records*8
+                offset = PAGESIZE
                 while offset > 0:
                     offset -= 8
                     tail_record = page_range.read_tail_record(tail_page_num, offset)
                     base_rid = tail_record[BASERID_COLUMN]
+                    if base_rid == 0:
+                        continue
                     #only merge if not already visited
                     if base_rid not in mergedrids:
-                        #print("base_rid=", base_rid)
+                        if(base_rid == 0):
+                            print("base_rid=", base_rid)
                         #print(mergedrids)
-                        #print("tailrecord=", tail_record)
+                            print("tailrecord=", tail_record)
+                            print("tail_page_num", tail_page_num, "offset", offset, page_range.tail_pages[tail_page_num][0].num_records*8)
+                            while offset > 0:
+                                offset-=8
+                                print(page_range.read_tail_record(tail_page_num, offset))
+
                         base_page_range, base_page_num, base_offset = self.page_directory[base_rid]
+
                         mergedrids.append(base_rid)
                         #only merge full base pages according to piazza https://piazza.com/class/lr5k6jd9o5k5vs/post/47
                         if self.page_ranges[base_page_range].base_pages[base_page_num][0].has_capacity:
