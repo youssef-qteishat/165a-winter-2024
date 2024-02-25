@@ -1,5 +1,4 @@
-PAGESIZE = 4096
-PAGECAP = PAGESIZE/8
+from lstore.config import *
 
 class Page:
 
