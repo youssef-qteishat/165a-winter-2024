@@ -200,7 +200,8 @@ class Table:
                         mergedrids.append(base_rid)
                         #only merge full base pages according to piazza https://piazza.com/class/lr5k6jd9o5k5vs/post/47
                         if self.page_ranges[base_page_range].base_pages[base_page_num][0].has_capacity:
-                            pass
+                            #pass
+                            continue
 
                         base_record = self.page_ranges[base_page_range].read_base_record(base_page_num, base_offset)
                         new_columns = base_record[:5]
