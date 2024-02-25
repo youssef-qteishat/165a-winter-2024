@@ -1,6 +1,5 @@
 from lstore.page import Page
-
-MAXRECORDS = 65536
+from lstore.config import *
 
 class Range:
 
@@ -39,7 +38,7 @@ class Range:
             if page.has_capacity() != True:
 
                 # then add a base page
-                self.add_base_page
+                self.add_base_page()
                 page = self.base_pages[column_num][self.current_base_page]
 
             # write to it
@@ -88,11 +87,12 @@ class Range:
             if page.has_capacity() != True:
 
                 # then add a base page
-                self.add_tail_page
+                self.add_tail_page()
                 page = self.tail_pages[column_num][self.current_tail_page]
 
             # write to it
             offset = page.write(columns[column_num])
+            self.num_records += 1
         # return the offset and page number within the page range
         return self.current_tail_page, offset
 
