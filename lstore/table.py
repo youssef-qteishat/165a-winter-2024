@@ -52,7 +52,7 @@ class Table:
         rid = self.get_new_rid()
 
         # load the colomn daat into a list
-        tail_columns = [rid, rid, int(1000000 * time()), 0, rid] + columns
+        tail_columns = [rid, rid, int(1000000 * time()), 0, rid, rid] + columns
 
         # add the base record and remember its location
         base_page_number, offset = page_range.add_base_record(tail_columns)
@@ -98,7 +98,7 @@ class Table:
         
         # if the page range does not have capacity create a new one
         if self.page_ranges[-1].has_capacity() != True:
-            self.page_ranges.append(Range(5 + self.num_columns, self.key))
+            self.page_ranges.append(Range(6 + self.num_columns, self.key))
 
         # get the latest range
         page_range = self.page_ranges[-1]
@@ -117,7 +117,7 @@ class Table:
         #if first update add copy of base record so that when merged, can still access first version
         if lastrid == baserid:
             copy_rid = self.get_new_rid()
-            copy_tail_columns = [baserid, copy_rid, int(1000000* time()), 0, baserid]+[None]*len(columns)
+            copy_tail_columns = [baserid, copy_rid, int(1000000* time()), 0, baserid, baserid]+[None]*len(columns)
             copy_tail_page_number, copy_offset = page_range.add_tail_record(copy_tail_columns)
             copy_page_range_number = len(self.page_ranges) - 1
             self.page_directory.update({copy_rid: [copy_page_range_number, copy_tail_page_number, copy_offset]})
@@ -130,7 +130,7 @@ class Table:
         self.page_ranges[basepagerange].change_schema_encoding(basepagenum, offset, schema_encoding)
 
         # load the colomn daat into a list
-        tail_columns = [lastrid, rid, int(1000000 * time()), schema_encoding, baserid] + columns
+        tail_columns = [lastrid, rid, int(1000000 * time()), schema_encoding, baserid, baserid] + columns
         for i in range(6, len(tail_columns)):
             if (1 & (schema_encoding >> (len(tail_columns) - (i + 1)))):
                 if tail_columns[i] == None:
@@ -213,17 +213,17 @@ class Table:
                         #    continue
 
                         base_record = self.page_ranges[base_page_range].read_base_record(base_page_num, base_offset)
-                        new_columns = base_record[:5]
+                        new_columns = base_record[:6]
                         schema_encoding = tail_record[SCHEMA_ENCODING_COLUMN]
                         #print("baserecord=", base_record)
                         for i in range(self.num_columns):
                             if (1 & (schema_encoding >> (self.num_columns - (i + 1)))):
-                                new_columns.append(tail_record[i+5])
+                                new_columns.append(tail_record[i+6])
                             else:
-                                new_columns.append(base_record[i+5])
+                                new_columns.append(base_record[i+6])
                         #print("new cols", new_columns)
                         if self.page_ranges[-1].has_capacity() != True:
-                            self.page_ranges.append(Range(5 + self.num_columns, self.key, self.name, len(self.page_ranges)))
+                            self.page_ranges.append(Range(6 + self.num_columns, self.key, self.name, len(self.page_ranges)))
                         page_range = self.page_ranges[-1]
 
                         new_page_number, new_offset = page_range.add_base_record(new_columns)
