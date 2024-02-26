@@ -11,7 +11,7 @@ db.open('./ECS165')
 #   The second argument is the number of columns
 #   The third argument is determining the which columns will be primay key
 #       Here the first column would be student id and primary key
-grades_table = db.create_table('Grades', 5, 0)
+grades_table = db.create_table('Grades', 6, 0)
 
 # create a query class for the grades table
 query = Query(grades_table)
@@ -34,7 +34,7 @@ print("Insert finished")
 
 # Check inserted records using select query
 for key in keys:
-    record = query.select(key, 0, [1, 1, 1, 1, 1])[0]
+    record = query.select(key, 0, [1, 1, 1, 1, 1, 0])[0]
     error = False
     for i, column in enumerate(record.columns):
         if column != records[key][i]:
@@ -49,7 +49,7 @@ print("Select finished")
 # x update on every column
 for _ in range(number_of_updates):
     for key in keys:
-        updated_columns = [None, None, None, None, None]
+        updated_columns = [None, None, None, None, None, None]
         # copy record to check
         original = records[key].copy()
         for i in range(2, grades_table.num_columns):
@@ -59,7 +59,7 @@ for _ in range(number_of_updates):
             # update our test directory
             records[key][i] = value
         query.update(key, *updated_columns)
-        record = query.select(key, 0, [1, 1, 1, 1, 1])[0]
+        record = query.select(key, 0, [1, 1, 1, 1, 1, 0])[0]
         error = False
         for j, column in enumerate(record.columns):
             if column != records[key][j]:

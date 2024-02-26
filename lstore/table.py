@@ -28,7 +28,7 @@ class Table:
         self.baserids = []
         self.page_directory = {}
         self.page_ranges = []
-        self.page_ranges.append(Range(5 + self.num_columns, self.key, self.name, len(self.page_ranges)))
+        self.page_ranges.append(Range(6 + self.num_columns, self.key, self.name, len(self.page_ranges)))
         self.last_rid = 0
         self.index = Index(self)
         self.deletedrids = []
@@ -43,7 +43,7 @@ class Table:
 
         # if the page range does not have capacity create a new one
         if self.page_ranges[-1].has_capacity() != True:
-            self.page_ranges.append(Range(5 + self.num_columns, self.key, self.name, len(self.page_ranges)))
+            self.page_ranges.append(Range(6 + self.num_columns, self.key, self.name, len(self.page_ranges)))
 
         # get the latest range
         page_range = self.page_ranges[-1]
@@ -87,7 +87,7 @@ class Table:
             tail_columns = self.page_ranges[page_range_number].read_tail_record(base_page_number, offset)
             #use the schema encoding to reconstruct full record
             schema_encoding = tail_columns[SCHEMA_ENCODING_COLUMN]
-            for i in range(5, len(tail_columns)):
+            for i in range(6, len(tail_columns)):
                 if (not (1 & (schema_encoding >> (len(tail_columns) - (i + 1))))):
                     tail_columns[i] = base_record[i]
             tail_record_id = tail_columns[INDIRECTION_COLUMN]
@@ -131,12 +131,12 @@ class Table:
 
         # load the colomn daat into a list
         tail_columns = [lastrid, rid, int(1000000 * time()), schema_encoding, baserid] + columns
-        for i in range(5, len(tail_columns)):
+        for i in range(6, len(tail_columns)):
             if (1 & (schema_encoding >> (len(tail_columns) - (i + 1)))):
                 if tail_columns[i] == None:
                     tail_columns[i] = lastrecord[i]
                 else:
-                    self.index.updated[i-5] = 1
+                    self.index.updated[i-6] = 1
         #print(tail_columns)
         # add the tail record and remember its location
         tail_page_number, offset = page_range.add_tail_record(tail_columns)
@@ -202,6 +202,8 @@ class Table:
                     base_rid = tail_record[BASERID_COLUMN]
                     #only merge if not already visited
                     if base_rid not in mergedrids:
+                        if base_rid not in self.page_directory:
+                            continue
                         base_page_range, base_page_num, base_offset = self.page_directory[base_rid]
                         mergedrids.append(base_rid)
                         #only merge full base pages according to piazza https://piazza.com/class/lr5k6jd9o5k5vs/post/47
@@ -231,7 +233,35 @@ class Table:
                         self.page_directory.update({base_rid: [page_range_number, new_page_number, new_offset]})
                         #print("merged", base_rid)
                         #print(self.read_record(base_rid))
-                        
+    
+    def __merge_with_tps(self):
+        #hashmap or dict for storing RIDs that have already been merged
+        mergerids = {}
+
+        # Step 1: select a set of consecutive fully committed tail records since the last merge within the update range
+        # ex: merge when # of updates is greater than TPS by 5
+
+
+        # Step 2: load the cooresponding base pages (that have the base record)
+        # For selected set of committed tail records:
+        #   load corresponding outdated base pages for given update range
+        #   
+
+        # Step 3: Consolidate base and tail pages
+        # For every updated column:
+        #   the merge process will read n outdated base pages
+        #   applies a set of recent committed updates from the tail pages
+        #   writes out m new pages.6 
+        # First committed tail pages' Base_rid columns (from Step 1) are scanned in reverse order to find the list of the latest version of every updated record since the last merge 
+        # (a temporary hashtable may be used to keep track whether the latest version of a record is seen or not)
+        # Subsequently, applying the latest tail records in a reverse order to the base records until an update to every record in the base range is seen or the list is exhausted, skipping any intermediate versions for which a newer update exists in the selected tail records. 
+        # If a latest tail record indicates the deletion of the record:
+        #   the deleted record will be included in the consolidated records
+
+        # Step 4: update the page direcotry
+        self.page_directory.update({base_rid: [page_range_number, new_page_number, new_offset]})
+        # Step 5: de-allocate the outdated base pages
+        pass
 
 
     #test function to allow me to call merge in test functions
