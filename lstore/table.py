@@ -1,7 +1,7 @@
 from lstore.index import Index
 from time import time
 from lstore.range import Range
-
+from lstore.bufferpool import Bufferpool
 from lstore.config import *
 
 class Record:
@@ -147,8 +147,9 @@ class Table:
         # return the rid to the caller (mostly used for testing right now)
         self.update_count+=1
         #print(self.update_count)
-        if(self.update_count > 100):
+        if(self.update_count > 1000):
             self.__merge()
+            self.update_count = 0
         return rid
     
     def delete_record(self, rid):
@@ -189,25 +190,25 @@ class Table:
     def __merge(self):
         #print("merge is happening")
         mergedrids = []
-        #new_page_ranges = [Range(5 + self.num_columns, self.key)]
-        #if self.page_ranges[-1].has_capacity() != True:
-        #    self.page_ranges.append(Range(5 + self.num_columns, self.key))
-
-        for page_range in reversed(self.page_ranges):
-            for tail_page_num in range(page_range.current_tail_page+1):
-                offset = page_range.tail_pages[0][tail_page_num].num_records*8
+        page_range_count = len(self.page_ranges)
+        for page_range_num in reversed(range(page_range_count)):
+            for tail_page_num in range(self.page_ranges[page_range_num].current_tail_page+1):
+                tail_page = Bufferpool().hold_tail_page(self.name, page_range_num, 0, tail_page_num)
+                offset = tail_page.num_records*8
+                Bufferpool().release_tail_page(self.name, page_range_num, 0, tail_page_num)
                 while offset > 0:
                     offset -= 8
-                    tail_record = page_range.read_tail_record(tail_page_num, offset)
+                    tail_record = self.page_ranges[page_range_num].read_tail_record(tail_page_num, offset)
                     base_rid = tail_record[BASERID_COLUMN]
                     #only merge if not already visited
                     if base_rid not in mergedrids:
                         base_page_range, base_page_num, base_offset = self.page_directory[base_rid]
                         mergedrids.append(base_rid)
                         #only merge full base pages according to piazza https://piazza.com/class/lr5k6jd9o5k5vs/post/47
-                        if self.page_ranges[base_page_range].base_pages[0][base_page_num].has_capacity:
+                        #doesn't matter because we're not merging full pages, just records
+                        #if self.page_ranges[base_page_range].base_pages[0][base_page_num].has_capacity:
                             #pass
-                            continue
+                        #    continue
 
                         base_record = self.page_ranges[base_page_range].read_base_record(base_page_num, base_offset)
                         new_columns = base_record[:5]
