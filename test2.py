@@ -1,7 +1,9 @@
 from lstore.table import Table
 from lstore.query import Query
-
-table = Table("Student Grades", 5, 0)
+from lstore.db import Database
+db = Database()
+db.open('./okbuddy')
+table = db.create_table("Student Grades", 5, 0)
 q = Query(table)
 
 rid1 = table.insert_record([1, 2, 3, 4, 5])
@@ -37,6 +39,7 @@ print("read2", table.read_record(rid1, 0))
 #print(q.select(43, 0, [1, 1, 1, 1, 0]))
 #print(q.select(5, 1, [1,1,1,1,1])[0].columns)
 print("select2", q.select_version(1, 0, [1,1,1,1,1], -1)[0].columns)
+db.close()
 exit()
 print("????")
 
