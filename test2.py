@@ -21,7 +21,7 @@ print("select!!!", q.select_version(1, 0, [1,1,1,1,1], -1)[0].columns)
 print("merged...")
 table.mergetest()
 print("mergee!")
-print("select2", q.select_version(1, 0, [1,1,1,1,1], -3)[0].columns)
+print("select2", q.select_version(1, 0, [1,1,1,1,1], -1)[0].columns)
 print("select2", q.select_version(1, 0, [1,1,1,1,1], 0)[0].columns)
 print("select2", q.select_version(1, 0, [1,1,1,1,1], -4)[0].columns)
 

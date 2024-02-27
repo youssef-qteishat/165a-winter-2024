@@ -123,23 +123,13 @@ class Table:
         basepagerange, basepagenum, baseoffset = self.page_directory[baserid]
         base_record = self.page_ranges[basepagerange].read_base_record(basepagenum, baseoffset)
         if lastrid == baserid:
-
-            if self.page_ranges[-1].has_capacity() != True:
-                self.page_ranges.append(Range(7 + self.num_columns, self.key))
-            page_range = self.page_ranges[-1]
-
             copy_rid = self.get_new_rid()
             copy_tail_columns = [baserid, copy_rid, int(1000000* time()), 0, baserid, baserid, baserid]+base_record[7:]
-            copy_tail_page_number, copy_offset = page_range.add_tail_record(copy_tail_columns)
-            copy_page_range_number = len(self.page_ranges) - 1
-            self.page_directory.update({copy_rid: [copy_page_range_number, copy_tail_page_number, copy_offset]})
+            copy_tail_page_number, copy_offset = self.page_ranges[basepagerange].add_tail_record(copy_tail_columns)
+            self.page_directory.update({copy_rid: [basepagerange, copy_tail_page_number, copy_offset]})
             self.page_ranges[basepagerange].change_og_rid(basepagenum, baseoffset, copy_rid)
         
         
-        if self.page_ranges[-1].has_capacity() != True:
-            self.page_ranges.append(Range(7 + self.num_columns, self.key))
-        page_range = self.page_ranges[-1]
-
         rid = self.get_new_rid()
         self.page_ranges[basepagerange].change_indirection(basepagenum, baseoffset, rid)
         self.page_ranges[basepagerange].change_schema_encoding(basepagenum, baseoffset, schema_encoding)
@@ -153,11 +143,11 @@ class Table:
                 else:
                     self.index.updated[i-7] = 1
         # add the tail record and remember its location
-        tail_page_number, offset = page_range.add_tail_record(tail_columns)
+        tail_page_number, offset = self.page_ranges[basepagerange].add_tail_record(tail_columns)
         page_range_number = len(self.page_ranges) - 1
 
         # store the rid and location of the record in the page directory
-        self.page_directory.update({rid: [page_range_number, tail_page_number, offset]})
+        self.page_directory.update({rid: [basepagerange, tail_page_number, offset]})
         # return the rid to the caller (mostly used for testing right now)
         self.update_count+=1
         if(self.update_count > 1000):
