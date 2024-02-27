@@ -3,27 +3,20 @@ from lstore.query import Query
 from lstore.db import Database
 
 db = Database()
-db.open('./weee')
-table = db.create_table("Student Grades", 5, 0)
+db.open('./ECS165')
+table = grades_table = db.get_table('Grades')
 q = Query(table)
 
-rid1 = table.insert_record([1, 2, 3, 4, 5])
-rid2 = table.insert_record([6, 5, 8, 9, 10])
-print("????")
-
-table.update_record([None, 56, None, None, None], rid1)
-table.update_record([None, None, 23, None, None], rid1)
-table.update_record([None, None, None, 55, None], rid1)
-print("????")
-print("read", table.read_record(rid1, 0))
-print("select!!!", q.select_version(1, 0, [1,1,1,1,1], -1)[0].columns)
-
+#print("select!!!", q.select_version(92106429, 0, [1,1,1,1,1], 0)[0].columns)
+print(table.page_directory)
+print("read", table.read_record(29, 0))
+db.close()
+exit()
 print("merged...")
 table.mergetest()
 print("mergee!")
 print("select2", q.select_version(1, 0, [1,1,1,1,1], -3)[0].columns)
 print("select2", q.select_version(1, 0, [1,1,1,1,1], 0)[0].columns)
-print("select2", q.select_version(1, 0, [1,1,1,1,1], -4)[0].columns)
 
 db.close()
 exit()

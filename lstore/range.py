@@ -166,6 +166,12 @@ class Range:
         Bufferpool().release_base_page(self.table_name, self.range_number, INDIRECTION_COLUMN, base_page_number)
         return True
     
+    def change_og_rid(self, base_page_number, offset, value):
+        page = Bufferpool().hold_base_page(self.table_name, self.range_number, OG_RID_COLUMN, base_page_number, True)
+        page.write_at_offset(value, offset)
+        Bufferpool().release_base_page(self.table_name, self.range_number, OG_RID_COLUMN, base_page_number)
+        return True
+
     def change_schema_encoding(self, base_page_number, offset, value):
         page = Bufferpool().hold_base_page(self.table_name, self.range_number, SCHEMA_ENCODING_COLUMN, base_page_number, True)
         page.write_at_offset(value, offset)
