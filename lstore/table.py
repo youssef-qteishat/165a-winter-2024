@@ -208,9 +208,8 @@ class Table:
                         base_page_range, base_page_num, base_offset = self.page_directory[base_rid]
                         mergedrids.append(base_rid)
 
-
                         base_record = self.page_ranges[base_page_range].read_base_record(base_page_num, base_offset)
-                        if base_record[TPS_COLUMN] <= tail_rid:
+                        if  tail_rid <= base_record[TPS_COLUMN]:
                             continue
                         og_page_range, og_page_num, og_offset = self.page_directory[base_record[OG_RID_COLUMN]]
                         og_record = self.page_ranges[og_page_range].read_base_record(og_page_num, og_offset)
@@ -224,6 +223,7 @@ class Table:
                                 new_columns.append(tail_record[i+7])
                             else:
                                 new_columns.append(og_record[i+7])
+                        #print(new_columns)
                         if self.page_ranges[-1].has_capacity() != True:
                             self.page_ranges.append(Range(7 + self.num_columns, self.key, self.name, len(self.page_ranges)))
                         page_range = self.page_ranges[-1]
