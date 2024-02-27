@@ -11,11 +11,11 @@ whether or not it is currently pinned, the page itself, the table name,
 the page range, if it is a base or tail page, and the number within the range.
 
 [
-    [file_path_0, pinned_val, Page(), table_name, page_range, base_page_bool, page_number],
-    [file_path_1, pinned_val, Page(), table_name, page_range, base_page_bool, page_number],
-    [file_path_2, pinned_val, Page(), table_name, page_range, base_page_bool, page_number],
+    [file_path_0, pinned_val, Page(), table_name, page_range, base_page_bool, page_number, dirty_bool],
+    [file_path_1, pinned_val, Page(), table_name, page_range, base_page_bool, page_number, dirty_bool],
+    [file_path_2, pinned_val, Page(), table_name, page_range, base_page_bool, page_number, dirty_bool],
     ...
-    [file_path_15, pinned_val, Page(), table_name, page_range, base_page_bool, page_number]
+    [file_path_15, pinned_val, Page(), table_name, page_range, base_page_bool, page_number, dirty_bool]
 }
 '''
 class Bufferpool:
