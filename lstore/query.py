@@ -37,6 +37,9 @@ class Query:
     # Returns False if insert fails for whatever reason
     """
     def insert(self, *columns):
+        rids = self.table.index.locate(self.table.key, columns[self.table.key])
+        if rids != None:
+            return False
         #returns rid for now
         schema_encoding = '0' * self.table.num_columns
         return self.table.insert_record(list(columns))

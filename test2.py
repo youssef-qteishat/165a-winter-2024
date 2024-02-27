@@ -15,11 +15,8 @@ table.update_record([None, 56, None, None, None], rid1)
 table.update_record([None, None, 23, None, None], rid1)
 table.update_record([None, None, None, 55, None], rid1)
 
-table.update_record([None, 56, None, None, None], rid1)
-table.update_record([None, None, 23, None, None], rid1)
-table.update_record([None, None, None, 55, None], rid1)
-
-print("????")
+rid3 = q.insert(1, 3, 4, 6, 7)
+print(rid3)
 print("read", table.read_record(rid1, 0))
 print("select!!!", q.select_version(1, 0, [1,1,1,1,1], -1)[0].columns)
 
