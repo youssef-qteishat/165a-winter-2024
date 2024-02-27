@@ -35,8 +35,8 @@ class Range:
         # update each of the columns
         for column_num in range(self.num_columns):
 
-            # get the most recent page
-            page = Bufferpool().hold_base_page(self.table_name, self.range_number, column_num, self.current_base_page)
+            # get the most recent page for reading
+            page = Bufferpool().hold_base_page(self.table_name, self.range_number, column_num, self.current_base_page, False)
 
             # if the page has no space to be written to
             if page.has_capacity() != True:
@@ -48,7 +48,16 @@ class Range:
                 self.add_base_page()
 
                 # load the new empty base page
-                page = Bufferpool().hold_base_page(self.table_name, self.range_number, column_num, self.current_base_page)
+                page = Bufferpool().hold_base_page(self.table_name, self.range_number, column_num, self.current_base_page, True)
+
+            # if the page does have space to be written to
+            else:
+
+                # release the base page for reading
+                Bufferpool().release_base_page(self.table_name, self.range_number, column_num, self.current_base_page)
+
+                # get the page for writing
+                page = Bufferpool().hold_base_page(self.table_name, self.range_number, column_num, self.current_base_page, True)
 
             # write to it
             offset = page.write(columns[column_num])
@@ -82,7 +91,7 @@ class Range:
         for column_num in range(self.num_columns):
 
             # read the value from the correct page
-            columns.append(Bufferpool().hold_base_page(self.table_name, self.range_number, column_num, base_page_number).read(offset))
+            columns.append(Bufferpool().hold_base_page(self.table_name, self.range_number, column_num, base_page_number, False).read(offset))
             Bufferpool().release_base_page(self.table_name, self.range_number, column_num, base_page_number)
 
         # return the full record
@@ -92,8 +101,8 @@ class Range:
         # update each of the columns
         for column_num in range(self.num_columns):
 
-            # get the most recent page
-            page = Bufferpool().hold_tail_page(self.table_name, self.range_number, column_num, self.current_tail_page)
+            # get the most recent page for reading
+            page = Bufferpool().hold_tail_page(self.table_name, self.range_number, column_num, self.current_tail_page, False)
 
             # if the page has no space to be written to
             if page.has_capacity() != True:
@@ -105,7 +114,16 @@ class Range:
                 self.add_tail_page()
 
                 # load the new empty tail page
-                page = Bufferpool().hold_tail_page(self.table_name, self.range_number, column_num, self.current_tail_page)
+                page = Bufferpool().hold_tail_page(self.table_name, self.range_number, column_num, self.current_tail_page, True)
+
+            # if the page does have space to be written to
+            else:
+
+                # release the base page for reading
+                Bufferpool().release_tail_page(self.table_name, self.range_number, column_num, self.current_tail_page)
+
+                # get the page for writing
+                page = Bufferpool().hold_tail_page(self.table_name, self.range_number, column_num, self.current_tail_page, True)
 
             # write to it
             offset = page.write(columns[column_num])
@@ -136,20 +154,20 @@ class Range:
         for column_num in range(self.num_columns):
 
             # read the value from the correct page
-            columns.append(Bufferpool().hold_tail_page(self.table_name, self.range_number, column_num, tail_page_number).read(offset))
+            columns.append(Bufferpool().hold_tail_page(self.table_name, self.range_number, column_num, tail_page_number, False).read(offset))
             Bufferpool().release_tail_page(self.table_name, self.range_number, column_num, tail_page_number)
 
         # return the full record
         return columns
 
     def change_indirection(self, base_page_number, offset, value):
-        page = Bufferpool().hold_base_page(self.table_name, self.range_number, INDIRECTION_COLUMN, base_page_number)
+        page = Bufferpool().hold_base_page(self.table_name, self.range_number, INDIRECTION_COLUMN, base_page_number, True)
         page.write_at_offset(value, offset)
         Bufferpool().release_base_page(self.table_name, self.range_number, INDIRECTION_COLUMN, base_page_number)
         return True
     
     def change_schema_encoding(self, base_page_number, offset, value):
-        page = Bufferpool().hold_base_page(self.table_name, self.range_number, SCHEMA_ENCODING_COLUMN, base_page_number)
+        page = Bufferpool().hold_base_page(self.table_name, self.range_number, SCHEMA_ENCODING_COLUMN, base_page_number, True)
         page.write_at_offset(value, offset)
         Bufferpool().release_base_page(self.table_name, self.range_number, SCHEMA_ENCODING_COLUMN, base_page_number)
         return True

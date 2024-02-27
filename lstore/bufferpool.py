@@ -35,7 +35,7 @@ class Bufferpool:
     def set_path(self, path):
         self.path = path
 
-    def hold_base_page(self, table, page_range, column_num, page_num):
+    def hold_base_page(self, table, page_range, column_num, page_num, dirty_bool):
         file_path = os.path.join(self.path, table, "PageRange" + str(page_range), "Column" + str(column_num), "BasePage" + str(page_num) + ".bin")
         page = next((page for page in self.pool if page[0] == file_path), None)
 
@@ -46,7 +46,7 @@ class Bufferpool:
                 data = bytearray(file.read())
             num_records = self.read_num_base_records(table, page_range, page_num)
             # upon being loaded the page is pinned by a single page range
-            page = [file_path, 1, Page(num_records, data), table, page_range, True, page_num]
+            page = [file_path, 1, Page(num_records, data), table, page_range, True, page_num, dirty_bool]
             self.pool.insert(0, page)
             return page[2]
         
@@ -54,6 +54,7 @@ class Bufferpool:
             self.pool.remove(page)
             self.pool.insert(0, page)
             page[1] += 1
+            page[7] = dirty_bool | page[7]
             return page[2]
 
     def release_base_page(self, table, page_range, column_num, page_num):
@@ -67,7 +68,7 @@ class Bufferpool:
             page[1] -= 1
     
 
-    def hold_tail_page(self, table, page_range, column_num, page_num):
+    def hold_tail_page(self, table, page_range, column_num, page_num, dirty_bool):
         file_path = os.path.join(self.path, table, "PageRange" + str(page_range), "Column" + str(column_num), "TailPage" + str(page_num) + ".bin")
         page = next((page for page in self.pool if page[0] == file_path), None)
 
@@ -78,7 +79,7 @@ class Bufferpool:
                 data = bytearray(file.read())
             num_records = self.read_num_tail_records(table, page_range, page_num)
             # upon being loaded the page is pinned by a single page range
-            page = [file_path, 1, Page(num_records, data), table, page_range, False, page_num]
+            page = [file_path, 1, Page(num_records, data), table, page_range, False, page_num, dirty_bool]
             self.pool.insert(0, page)
             return page[2]
         
@@ -86,6 +87,7 @@ class Bufferpool:
             self.pool.remove(page)
             self.pool.insert(0, page)
             page[1] += 1
+            page[7] = dirty_bool | page[7]
             return page[2]
 
     def release_tail_page(self, table, page_range, column_num, page_num):
@@ -184,13 +186,15 @@ class Bufferpool:
         
         for page in reversed(self.pool):
             if page[1] == 0:
-                with open(page[0], 'wb') as file:
-                    file.write(page[2].data)
-                if (page[5] == True):
-                    self.write_num_base_records(page[3], page[4], page[6], page[2].num_records)
+                if page[7] == True:
+                    with open(page[0], 'wb') as file:
+                        file.write(page[2].data)
+                    if (page[5] == True):
+                        self.write_num_base_records(page[3], page[4], page[6], page[2].num_records)
+                    else:
+                        self.write_num_tail_records(page[3], page[4], page[6], page[2].num_records)
+                    self.pool.remove(page)
                 else:
-                    self.write_num_tail_records(page[3], page[4], page[6], page[2].num_records)
-                self.pool.remove(page)
+                    self.pool.remove(page)
                 return True
-        
         return False
