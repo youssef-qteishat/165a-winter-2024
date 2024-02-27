@@ -84,12 +84,12 @@ class Table:
             og_columns = base_record
         # get the indirection column and schema encoding
         tail_record_id = base_record[INDIRECTION_COLUMN]
+        if tail_record_id <= tps and version == 0:
+            return base_record
         for i in range(version-1, 0):
             if tail_record_id == rid:
             # read the record from the location
                 return og_columns
-            if tail_record_id <= tps and version == 0:
-                return base_record
             # get the location from the page directory
             tail_page_range_number, tail_page_number, tail_offset = self.page_directory.get(tail_record_id)
             # get the tail record columns
@@ -212,7 +212,7 @@ class Table:
                         if tail_rid <= base_record[TPS_COLUMN]:
                             continue
                         og_page_range, og_page_num, og_offset = self.page_directory[base_record[OG_RID_COLUMN]]
-                        og_record = self.page_ranges[og_page_range].read_base_record(og_page_num, og_offset)
+                        og_record = self.page_ranges[og_page_range].read_tail_record(og_page_num, og_offset)
                         new_columns = base_record[:5]
                         #appends base rid of tail record to new columns (i.e fields) of updated record, becoming merged reecord's tps
                         new_columns.append(tail_rid)

@@ -43,7 +43,7 @@ for key in keys:
         if column != records[key][i]:
             error = True
     if error:
-        print('select error on', key, ':', record, ', correct:', records[key])
+        print('select error on', key, ':', record, ', correct:', records[key], "-1")
 print("Select for version -1 finished")
 
 # Check records that were presisted in part 1
@@ -54,7 +54,7 @@ for key in keys:
         if column != records[key][i]:
             error = True
     if error:
-        print('select error on', key, ':', record, ', correct:', records[key])
+        print('select error on', key, ':', record, ', correct:', records[key], "-2")
 print("Select for version -2 finished")
 
 for key in keys:
@@ -64,7 +64,7 @@ for key in keys:
         if column != updated_records[key][i]:
             error = True
     if error:
-        print('select error on', key, ':', record, ', correct:', records[key])
+        print('select error on', key, ':', record, ', correct:', records[key], "0")
 print("Select for version 0 finished")
 
 for i in range(0, number_of_aggregates):
