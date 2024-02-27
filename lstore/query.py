@@ -37,6 +37,8 @@ class Query:
     # Returns False if insert fails for whatever reason
     """
     def insert(self, *columns):
+        if self.table.index.has_key(columns[self.table.key]):
+            return False
         rids = self.table.index.locate(self.table.key, columns[self.table.key])
         if rids != None:
             return False
@@ -95,7 +97,8 @@ class Query:
     # Returns False if no records exist with given key or if the target record cannot be accessed due to 2PL locking
     """
     def update(self, primary_key, *columns):
-        #assume primary key is immutable/actually idk
+        if (columns[self.table.key] != None) and (self.table.index.has_key(columns[self.table.key])):
+            return False
         rid = self.table.index.locate(self.table.key, primary_key)
         if len(rid) > 1:
             return False
