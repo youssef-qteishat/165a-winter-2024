@@ -19,7 +19,7 @@ rid3 = q.insert(1, 3, 4, 6, 7)
 print(rid3)
 print("read", table.read_record(rid1, 0))
 print("select!!!", q.select_version(1, 0, [1,1,1,1,1], -1)[0].columns)
-
+q.delete(1)
 print("merged...")
 table.mergetest()
 print("mergee!")
