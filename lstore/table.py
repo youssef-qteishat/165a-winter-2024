@@ -72,6 +72,7 @@ class Table:
         # get the location of the base page by its rid
         page_range_number, base_page_number, offset = self.page_directory.get(rid)
         base_record = self.page_ranges[page_range_number].read_base_record(base_page_number, offset)
+        tps = base_record[TPS_COLUMN]
         schema_encoding = base_record[SCHEMA_ENCODING_COLUMN]
         #print("read base", base_record)
         # get the indirection column and schema encoding
@@ -80,6 +81,8 @@ class Table:
         for i in range(version-1, 0):
             if tail_record_id == rid:
             # read the record from the location
+                return base_record
+            if tail_record_id <= tps and version == 0:
                 return base_record
             # get the location from the page directory
             page_range_number, base_page_number, offset = self.page_directory.get(tail_record_id)
@@ -200,6 +203,7 @@ class Table:
                     offset -= 8
                     tail_record = self.page_ranges[page_range_num].read_tail_record(tail_page_num, offset)
                     base_rid = tail_record[BASERID_COLUMN]
+                    tail_rid = tail_record[RID_COLUMN]
                     #only merge if not already visited
                     if base_rid not in mergedrids:
                         if base_rid not in self.page_directory:
@@ -213,7 +217,10 @@ class Table:
                         #    continue
 
                         base_record = self.page_ranges[base_page_range].read_base_record(base_page_num, base_offset)
-                        new_columns = base_record[:6]
+                        new_columns = base_record[:5]
+
+                        #appends base rid of tail record to new columns (i.e fields) of updated record, becoming merged reecord's tps
+                        new_columns.append(tail_rid)
                         schema_encoding = tail_record[SCHEMA_ENCODING_COLUMN]
                         #print("baserecord=", base_record)
                         for i in range(self.num_columns):
@@ -233,35 +240,6 @@ class Table:
                         self.page_directory.update({base_rid: [page_range_number, new_page_number, new_offset]})
                         #print("merged", base_rid)
                         #print(self.read_record(base_rid))
-    
-    def __merge_with_tps(self):
-        #hashmap or dict for storing RIDs that have already been merged
-        mergerids = {}
-
-        # Step 1: select a set of consecutive fully committed tail records since the last merge within the update range
-        # ex: merge when # of updates is greater than TPS by 5
-
-
-        # Step 2: load the cooresponding base pages (that have the base record)
-        # For selected set of committed tail records:
-        #   load corresponding outdated base pages for given update range
-        #   
-
-        # Step 3: Consolidate base and tail pages
-        # For every updated column:
-        #   the merge process will read n outdated base pages
-        #   applies a set of recent committed updates from the tail pages
-        #   writes out m new pages.6 
-        # First committed tail pages' Base_rid columns (from Step 1) are scanned in reverse order to find the list of the latest version of every updated record since the last merge 
-        # (a temporary hashtable may be used to keep track whether the latest version of a record is seen or not)
-        # Subsequently, applying the latest tail records in a reverse order to the base records until an update to every record in the base range is seen or the list is exhausted, skipping any intermediate versions for which a newer update exists in the selected tail records. 
-        # If a latest tail record indicates the deletion of the record:
-        #   the deleted record will be included in the consolidated records
-
-        # Step 4: update the page direcotry
-        self.page_directory.update({base_rid: [page_range_number, new_page_number, new_offset]})
-        # Step 5: de-allocate the outdated base pages
-        pass
 
 
     #test function to allow me to call merge in test functions

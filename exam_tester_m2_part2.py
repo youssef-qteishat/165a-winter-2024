@@ -22,7 +22,7 @@ number_of_updates = 1
 seed(3562901)
 for i in range(0, number_of_records):
     key = 92106429 + i
-    records[key] = [key, randint(0, 20), randint(0, 20), randint(0, 20), randint(0, 20)]
+    records[key] = [key, randint(0, 20), randint(0, 20), randint(0, 20), randint(0, 20), randint(0,20)]
 
 # Simulate updates
 updated_records = {}
@@ -37,7 +37,7 @@ keys = sorted(list(records.keys()))
 
 # Check records that were presisted in part 1
 for key in keys:
-    record = query.select_version(key, 0, [1, 1, 1, 1, 1], -1)[0]
+    record = query.select_version(key, 0, [1, 1, 1, 1, 0], -1)[0]
     error = False
     for i, column in enumerate(record.columns):
         if column != records[key][i]:
@@ -48,7 +48,7 @@ print("Select for version -1 finished")
 
 # Check records that were presisted in part 1
 for key in keys:
-    record = query.select_version(key, 0, [1, 1, 1, 1, 1], -2)[0]
+    record = query.select_version(key, 0, [1, 1, 1, 1, 0], -2)[0]
     error = False
     for i, column in enumerate(record.columns):
         if column != records[key][i]:
@@ -58,7 +58,7 @@ for key in keys:
 print("Select for version -2 finished")
 
 for key in keys:
-    record = query.select_version(key, 0, [1, 1, 1, 1, 1], 0)[0]
+    record = query.select_version(key, 0, [1, 1, 1, 1, 0], 0)[0]
     error = False
     for i, column in enumerate(record.columns):
         if column != updated_records[key][i]:
