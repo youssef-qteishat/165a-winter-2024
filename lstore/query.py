@@ -37,6 +37,11 @@ class Query:
     # Returns False if insert fails for whatever reason
     """
     def insert(self, *columns):
+        if self.table.index.has_key(columns[self.table.key]):
+            return False
+        rids = self.table.index.locate(self.table.key, columns[self.table.key])
+        if rids != None:
+            return False
         #returns rid for now
         schema_encoding = '0' * self.table.num_columns
         return self.table.insert_record(list(columns))
@@ -59,7 +64,7 @@ class Query:
             record = self.table.read_record(rid, 0)
             cols = []
             for i, p in enumerate(projected_columns_index):
-                if p: cols.append(record[i+5])
+                if p: cols.append(record[i+7])
             records.append(Record(rid, self.table.key, cols))
         return records
 
@@ -81,7 +86,7 @@ class Query:
             record = self.table.read_record(rid, relative_version)
             cols = []
             for i, p in enumerate(projected_columns_index):
-                if p: cols.append(record[i+5])
+                if p: cols.append(record[i+7])
             records.append(Record(rid, self.table.key, cols))
         return records
 
@@ -92,7 +97,8 @@ class Query:
     # Returns False if no records exist with given key or if the target record cannot be accessed due to 2PL locking
     """
     def update(self, primary_key, *columns):
-        #assume primary key is immutable/actually idk
+        if (columns[self.table.key] != None) and (self.table.index.has_key(columns[self.table.key])):
+            return False
         rid = self.table.index.locate(self.table.key, primary_key)
         if len(rid) > 1:
             return False
@@ -113,7 +119,7 @@ class Query:
         s = 0
         for rid in rids:
             record = self.table.read_record(rid, 0)
-            s = s + record[aggregate_column_index+5]
+            s = s + record[aggregate_column_index+7]
         return s
 
     
@@ -132,7 +138,7 @@ class Query:
         s = 0
         for rid in rids:
             record = self.table.read_record(rid, relative_version)
-            s = s + record[aggregate_column_index+5]
+            s = s + record[aggregate_column_index+7]
         return s
 
     

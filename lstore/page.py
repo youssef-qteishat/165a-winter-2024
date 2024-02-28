@@ -1,11 +1,10 @@
-PAGESIZE = 4096
-PAGECAP = PAGESIZE/8
+from lstore.config import *
 
 class Page:
-
-    def __init__(self):
-        self.num_records = 0
-        self.data = bytearray(PAGESIZE)
+    
+    def __init__(self, num_records, data):
+        self.num_records = num_records
+        self.data = data
 
     def has_capacity(self):
         return self.num_records < PAGECAP

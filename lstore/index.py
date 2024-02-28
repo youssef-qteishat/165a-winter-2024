@@ -1,10 +1,14 @@
 #btree with object key and object val, maybe change to more specific stuff later
 #from https://btrees.readthedocs.io/en/latest/index.html
-from BTrees.OOBTree import OOBTree
+import BTrees.OOBTree
 
 """
 A data strucutre holding indices for various columns of a table. Key column should be indexd by default, other columns can be indexed through this object. Indices are usually B-Trees, but other data structures can be used as well.
 """
+class MyBTree(BTrees.OOBTree.BTree):
+
+    max_leaf_size = 50000
+    max_internal_size = 10000
 
 class Index:
     def __init__(self, table):
@@ -45,10 +49,10 @@ class Index:
 
     def create_index(self, column_number):
         self.drop_index(column_number)
-        self.indices[column_number] = OOBTree()
+        self.indices[column_number] = MyBTree()
         #figure out after we get organization done
         for rid in self.table.baserids:
-            val = self.table.read_record(rid, 0)[column_number+5]
+            val = self.table.read_record(rid, 0)[column_number+7]
             self.addToIndex(column_number, val, rid)
 
     def addToIndex(self, column_number, val, rid):
@@ -73,3 +77,9 @@ class Index:
             self.drop_index(column_number)
             self.create_index(column_number)
             self.updated[column_number] = 0
+
+    def has_key(self, key):
+        if key in self.indices[self.table.key]:
+            return True
+        else:
+            return False

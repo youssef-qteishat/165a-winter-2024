@@ -1,33 +1,41 @@
 from lstore.table import Table
 from lstore.query import Query
+from lstore.db import Database
 
-table = Table("Student Grades", 5, 0)
+db = Database()
+db.open('./weee')
+table = db.create_table("Student Grades", 5, 0)
 q = Query(table)
 
 rid1 = table.insert_record([1, 2, 3, 4, 5])
 rid2 = table.insert_record([6, 5, 8, 9, 10])
+print("????")
+
 table.update_record([None, 56, None, None, None], rid1)
-print("___________________________-")
 table.update_record([None, None, 23, None, None], rid1)
-#print("___________________________-")
-#table.update_record([None, 47, 234, None, 1], rid2)
-#print(table.read_record(rid1, 0))
-#print(q.select(56, 1, [1, 1, 1, 1, 1])[0].columns)
-#print("_______________________-")
-#q.insert(43, 567, 65, 5)
-# first 4 columns are meta data, last 5 are the contents
-#print(table.read_record(rid1), rid1)
-#print(table.read_record(rid2), rid2)
-#print(table.read_record(4))
-rid3 = q.insert(2, 77, 89, 100, 21)
-rid4 = q.insert(3, 5, 55, 13, 23)
-rid5 = q.insert(4, 5, 23, 2, 4)
-rid6 = q.insert(4234, 5, 12, 56, 88)
-print(q.sum(4, 8, 0))
-#print(table.read_record(rid3))
-#print(q.select(43, 0, [1, 1, 1, 1, 0]))
-#print(q.select(5, 1, [1,1,1,1,1])[0].columns)
-print(q.select_version(1, 0, [1,1,1,1,1], -1)[0].columns)
+table.update_record([None, None, None, 55, None], rid1)
+
+rid3 = q.insert(1, 3, 4, 6, 7)
+print(rid3)
+print("read", table.read_record(rid1, 0))
+print("select!!!", q.select_version(1, 0, [1,1,1,1,1], -1)[0].columns)
+q.delete(1)
+print("merged...")
+table.mergetest()
+print("mergee!")
+print("select1", q.select_version(1, 0, [1,1,1,1,1], -3)[0].columns)
+print("select1", q.select_version(1, 0, [1,1,1,1,1], -2)[0].columns)
+print("select1", q.select_version(1, 0, [1,1,1,1,1], -1)[0].columns)
+print("select1", q.select_version(1, 0, [1,1,1,1,1], 0)[0].columns)
+
+
+print("select2", q.select_version(6, 0, [1,1,1,1,1], 0)[0].columns)
+print("select2", q.select_version(6, 0, [1,1,1,1,1], 0)[0].columns)
+print("select2", q.select_version(6, 0, [1,1,1,1,1], 0)[0].columns)
+print("select2", q.select_version(6, 0, [1,1,1,1,1], 0)[0].columns)
+print("select2", q.select_version(6, 0, [1,1,1,1,1], 0)[0].columns)
+
+db.close()
 exit()
 print("????")
 

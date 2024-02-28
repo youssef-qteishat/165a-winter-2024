@@ -1,1 +1,5 @@
-colorama
+BTrees==5.2
+cffi==1.16.0
+persistent==5.2
+pycparser==2.21
+zope.interface==6.2

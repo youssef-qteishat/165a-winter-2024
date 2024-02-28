@@ -1,0 +1,30 @@
+from lstore.db import Database
+from lstore.query import Query
+from lstore.table import Table
+
+db = Database()
+db.open('./ECS165')
+grades_table = db.create_table('Grades', 5, 0)
+query = Query(grades_table)
+rid1 = query.insert(*[1, 2, 3, 4, 5])
+query.update(1, *[None, 56, None, None, None])
+query.update(1, *[None, None, 56, None, None])
+query.update(1, *[None, None, None, 56, None])
+query.update(1, *[None, None, None, None, 56])
+query.update(1, *[1, 2, 3, 5, 5])
+print(query.select_version(1, 0, [1, 1, 1, 1, 1], 0)[0])
+print(query.select_version(1, 0, [1, 1, 1, 1, 1], -1)[0])
+print(query.select_version(1, 0, [1, 1, 1, 1, 1], -2)[0])
+print(query.select_version(1, 0, [1, 1, 1, 1, 1], -3)[0])
+print(query.select_version(1, 0, [1, 1, 1, 1, 1], -4)[0])
+print(query.select_version(1, 0, [1, 1, 1, 1, 1], -5)[0])
+grades_table.mergetest()
+db.close()
+db.open('./ECS165')
+print(query.select_version(1, 0, [1, 1, 1, 1, 1], 0)[0])
+print(query.select_version(1, 0, [1, 1, 1, 1, 1], -1)[0])
+print(query.select_version(1, 0, [1, 1, 1, 1, 1], -2)[0])
+print(query.select_version(1, 0, [1, 1, 1, 1, 1], -3)[0])
+print(query.select_version(1, 0, [1, 1, 1, 1, 1], -4)[0])
+print(query.select_version(1, 0, [1, 1, 1, 1, 1], -5)[0])
+
