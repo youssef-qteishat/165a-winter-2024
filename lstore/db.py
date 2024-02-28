@@ -39,6 +39,9 @@ class Database():
     :param key: int             #Index of table key in columns
     """
     def create_table(self, name, num_columns, key_index):
+        table_path = os.path.join(self.path, name)
+        if os.path.exists(table_path):
+            raise Exception("Table already exists")
         table = Table(name, num_columns, key_index)
         self.tables.append(table)
         return table
