@@ -169,6 +169,8 @@ class Table:
 
         # remove the page from the page directory
         self.delete_rid(rid)
+        for column_number in range(self.num_columns):
+            self.index.updated[column_number] = 1
 
         # if the indirection was successfully changed return true
         return True
