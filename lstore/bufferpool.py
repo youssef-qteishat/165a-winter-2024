@@ -5,7 +5,7 @@ from lstore.config import *
 
 '''
 The bufferpool is represented as a list of 7 element lists.
-The pool can contain 16 pages (as defined by config.py) and for
+The pool can contain any number of pages (as defined by config.py) and for
 each page stores the file-path of that page (unique to each page),
 whether or not it is currently pinned, the page itself, the table name,
 the page range, if it is a base or tail page, and the number within the range.
