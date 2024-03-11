@@ -23,7 +23,7 @@ class Query:
     def delete(self, primary_key):
         rid = self.table.index.locate(self.table.key, primary_key)
 
-        if len(rid) > 1:
+        if rid == None or len(rid) > 1:
             return False
         
         self.table.delete_record(list(rid)[0])
@@ -59,6 +59,8 @@ class Query:
     """
     def select(self, search_key, search_key_index, projected_columns_index):
         rids = self.table.index.locate(search_key_index, search_key)
+        if rids == None:
+            return []
         records = []
         for rid in rids:
             record = self.table.read_record(rid, 0)
@@ -81,6 +83,9 @@ class Query:
     """
     def select_version(self, search_key, search_key_index, projected_columns_index, relative_version):
         rids = self.table.index.locate(search_key_index, search_key)
+        if rids == None:
+            return []
+
         records = []
         for rid in rids:
             record = self.table.read_record(rid, relative_version)
@@ -100,7 +105,7 @@ class Query:
         if (columns[self.table.key] != None) and (self.table.index.has_key(columns[self.table.key])):
             return False
         rid = self.table.index.locate(self.table.key, primary_key)
-        if len(rid) > 1:
+        if rid == None or len(rid) > 1:
             return False
         return self.table.update_record(list(columns), list(rid)[0])
 
@@ -115,6 +120,9 @@ class Query:
     """
     def sum(self, start_range, end_range, aggregate_column_index):
         rids = self.table.index.locate_range(start_range, end_range, self.table.key)
+        if rids == None:
+            return False
+
         records = []
         s = 0
         for rid in rids:
@@ -134,6 +142,9 @@ class Query:
     """
     def sum_version(self, start_range, end_range, aggregate_column_index, relative_version):
         rids = self.table.index.locate_range(start_range, end_range, self.table.key)
+        if rids == None:
+            return False
+
         records = []
         s = 0
         for rid in rids:
