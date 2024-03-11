@@ -212,7 +212,8 @@ class Table:
 
                         base_record = self.page_ranges[base_page_range].read_base_record(base_page_num, base_offset)
                         if tail_rid <= base_record[TPS_COLUMN]:
-                            break
+                            print("merge less")
+                            return
                         og_page_range, og_page_num, og_offset = self.page_directory[base_record[OG_RID_COLUMN]]
                         og_record = self.page_ranges[og_page_range].read_tail_record(og_page_num, og_offset)
                         new_columns = base_record[:5]
@@ -233,7 +234,7 @@ class Table:
                         page_range_number = len(self.page_ranges) - 1
                         # store the rid and location of the record in the page directory
                         self.page_directory.update({base_rid: [page_range_number, new_page_number, new_offset]})
-
+    print("merged!")
 
 
     #test function to allow me to call merge in test functions
