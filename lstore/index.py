@@ -10,6 +10,7 @@ class MyBTree(BTrees.OOBTree.BTree):
     max_leaf_size = 50000
     max_internal_size = 10000
 
+
 class Index:
     def __init__(self, table):
         # One index for each column for fast search. All our empty initially.
@@ -29,7 +30,11 @@ class Index:
     """
 
     def locate(self, column, value):
-        self.update_index(column)
+        self.update_index_old(column)
+        if self.indices[column] is None:
+            self.drop_index(column)
+            self.create_index(column)
+            self.updated[column] = 0
         return self.indices[column].get(value)
 
     """
@@ -37,7 +42,7 @@ class Index:
     """
 
     def locate_range(self, begin, end, column):
-        self.update_index(column)
+        self.update_index_old(column)
         ridlists = self.indices[column].values(min = begin, max = end)
         rv = []
         for ridlist in ridlists:
@@ -71,11 +76,23 @@ class Index:
         self.indices[column_number] = None
         self.updated[column_number] = 0
     
-    def update_index(self, column_number):
+    def update_index_old(self, column_number):
         if self.indices[column_number] is None or self.updated[column_number] == 1:
             self.drop_index(column_number)
             self.create_index(column_number)
             self.updated[column_number] = 0
+
+    def update_index(self, column_number, val, oldval, rid):
+        if(self.indices[column_number] == None or self.indices[column_number].get(oldval) == None):
+            return False
+        self.indices[column_number][oldval].remove(rid)
+        if len(self.indices[column_number][oldval]) == 0:
+            self.indices[column_number].__delitem__(oldval)
+        if self.indices[column_number].get(val) == None:
+            self.indices[column_number][val] = {rid}
+        else:
+            self.indices[column_number][val].add(rid)
+        return True
 
     def has_key(self, key):
         if key in self.indices[self.table.key]:

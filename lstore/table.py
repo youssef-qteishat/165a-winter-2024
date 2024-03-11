@@ -141,7 +141,7 @@ class Table:
                 if tail_columns[i] == None:
                     tail_columns[i] = lastrecord[i]
                 else:
-                    self.index.updated[i-7] = 1
+                    self.index.update_index(i-7, tail_columns[i], lastrecord[i], baserid)
         # add the tail record and remember its location
         tail_page_number, offset = self.page_ranges[basepagerange].add_tail_record(tail_columns)
         page_range_number = len(self.page_ranges) - 1
@@ -190,7 +190,7 @@ class Table:
         self.page_directory.pop(rid)
 
     def __merge(self):
-        #print("merge is happening")
+        print("merge is happening")
         mergedrids = []
         page_range_count = len(self.page_ranges)
         for page_range_num in reversed(range(page_range_count)):
@@ -234,7 +234,7 @@ class Table:
                         page_range_number = len(self.page_ranges) - 1
                         # store the rid and location of the record in the page directory
                         self.page_directory.update({base_rid: [page_range_number, new_page_number, new_offset]})
-    print("merged!")
+        print("merged!")
 
 
     #test function to allow me to call merge in test functions

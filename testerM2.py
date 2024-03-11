@@ -121,6 +121,8 @@ def correctness_tester1():
         else:
             print("Error[6]")
     except Exception as e:
+        print(traceback.format_exc())
+        print(e)
         print("Wrong[6]")
 
     try:
@@ -359,10 +361,13 @@ def merging_tester():
         keys = sorted(sample(range(0, records_num),sample_count)) 
         time = 0
         # 200 * 200 select
+        start = timer()
         while time < select_repeat:
             time += 1
             for key in keys:
                 query.select(key, 0, [1,1,1,1,1])
+        end = timer()
+        print("Select time Taken: ", Decimal(end - start).quantize(Decimal('0.01')), "seconds")
 
 from timeit import default_timer as timer
 from decimal import Decimal
@@ -372,7 +377,7 @@ import glob
 import traceback
 import shutil   
 
-m2tests = [0,0,1]
+m2tests = [1,0,0]
 if m2tests[0] == 1:
     print("==========correctness tester===============")
     correctness_tester1() 
