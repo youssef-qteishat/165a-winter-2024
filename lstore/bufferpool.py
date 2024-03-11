@@ -17,6 +17,10 @@ the page range, if it is a base or tail page, and the number within the range.
     ...
     [file_path_15, pinned_val, Page(), table_name, page_range, base_page_bool, page_number, dirty_bool]
 }
+
+calling acquire and release lock when holding and releasing pages is temporary until
+we write new functions to aquire all locks for an transaction and then release them all at the end.
+this is done to satisfy 2PL protocol
 '''
 class Bufferpool:
     _instance = None
@@ -30,12 +34,37 @@ class Bufferpool:
     def __init__(self):
         if not self.__initialized:
             self.pool = []
+            self.locks = {} # stores locks held on pages on disk
             self.__initialized = True
 
     def set_path(self, path):
         self.path = path
 
+    def acquire_lock(self, page_num):
+        if page_num not in self.locks:
+            self.locks[page_num] = False  # Initialize lock status to False (unlocked)
+        while self.locks[page_num]:  # Wait until lock is released (lock status becomes False)
+            pass
+        self.locks[page_num] = True  # Set lock status to True (locked)
+
+    def release_lock(self, page_num):
+        if self.locks[page_num]:  # Check if the page is locked (i.e., the lock status is True)
+            self.locks[page_num] = False  # Set lock status to False (unlocked)
+            
+            # Find the page in the pool
+            for page in self.pool:
+                if page[6] == page_num:  # Check if the page number matches
+                    if page[7]:  # Check if the page is dirty
+                        # Write the page to disk
+                        with open(page[0], 'wb') as file:
+                            file.write(page[2].data)
+                        # Reset the dirty flag
+                        page[7] = False
+                    break
+
+
     def hold_base_page(self, table, page_range, column_num, page_num, dirty_bool):
+        self.acquire_lock(page_num)
         file_path = os.path.join(self.path, table, "PageRange" + str(page_range), "Column" + str(column_num), "BasePage" + str(page_num) + ".bin")
         page = next((page for page in self.pool if page[0] == file_path), None)
 
@@ -58,6 +87,7 @@ class Bufferpool:
             return page[2]
 
     def release_base_page(self, table, page_range, column_num, page_num):
+        self.release_lock(page_num)
         file_path = os.path.join(self.path, table, "PageRange" + str(page_range), "Column" + str(column_num), "BasePage" + str(page_num) + ".bin")
         page = next((page for page in self.pool if page[0] == file_path), None)
         
@@ -69,6 +99,7 @@ class Bufferpool:
     
 
     def hold_tail_page(self, table, page_range, column_num, page_num, dirty_bool):
+        self.acquire_lock(page_num)
         file_path = os.path.join(self.path, table, "PageRange" + str(page_range), "Column" + str(column_num), "TailPage" + str(page_num) + ".bin")
         page = next((page for page in self.pool if page[0] == file_path), None)
 
@@ -91,6 +122,7 @@ class Bufferpool:
             return page[2]
 
     def release_tail_page(self, table, page_range, column_num, page_num):
+        self.release_lock(page_num)
         file_path = os.path.join(self.path, table, "PageRange" + str(page_range), "Column" + str(column_num), "TailPage" + str(page_num) + ".bin")
         page = next((page for page in self.pool if page[0] == file_path), None)
 
@@ -198,3 +230,6 @@ class Bufferpool:
                     self.pool.remove(page)
                 return True
         return False
+
+    
+    
