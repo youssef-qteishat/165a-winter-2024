@@ -13,12 +13,10 @@ class Database():
     def open(self, path):
         if not os.path.exists(path):
             self.path = path
-            self.bufferpool.set_path(path)
             os.mkdir(path)
 
         else:
             self.path = path
-            self.bufferpool.set_path(path)
             path = os.path.join(path, "metadata_file.pkl")
             file_open = open(path, 'rb')
             self.tables = pickle.load(file_open)
@@ -42,7 +40,7 @@ class Database():
         table_path = os.path.join(self.path, name)
         if os.path.exists(table_path):
             raise Exception("Table already exists")
-        table = Table(name, num_columns, key_index)
+        table = Table(name, num_columns, key_index, self.path)
         self.tables.append(table)
         return table
     

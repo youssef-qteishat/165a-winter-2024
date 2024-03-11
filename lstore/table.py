@@ -21,14 +21,15 @@ class Table:
     :param num_columns: int     #Number of Columns: all columns are integer
     :param key: int             #Index of table key in columns
     """
-    def __init__(self, name, num_columns, key):
+    def __init__(self, name, num_columns, key, db_path):
         self.name = name
         self.key = key
         self.num_columns = num_columns
+        self.db_path = db_path
         self.baserids = []
         self.page_directory = {}
         self.page_ranges = []
-        self.page_ranges.append(Range(7 + self.num_columns, self.key, self.name, len(self.page_ranges)))
+        self.page_ranges.append(Range(7 + self.num_columns, self.key, self.db_path, self.name, len(self.page_ranges)))
         self.last_rid = 0
         self.index = Index(self)
         self.update_count = 0
@@ -42,7 +43,7 @@ class Table:
 
         # if the page range does not have capacity create a new one
         if self.page_ranges[-1].has_capacity() != True:
-            self.page_ranges.append(Range(7 + self.num_columns, self.key, self.name, len(self.page_ranges)))
+            self.page_ranges.append(Range(7 + self.num_columns, self.key, self.db_path, self.name, len(self.page_ranges)))
 
         # get the latest range
         page_range = self.page_ranges[-1]
@@ -63,7 +64,7 @@ class Table:
             self.index.addToIndex(i, columns[i], rid)
             
         if self.page_ranges[-1].has_capacity() != True:
-            self.page_ranges.append(Range(7 + self.num_columns, self.key, self.name, len(self.page_ranges)))
+            self.page_ranges.append(Range(7 + self.num_columns, self.key, self.db_path, self.name, len(self.page_ranges)))
 
 
         # return the rid to the caller (mostly used for testing right now)
@@ -195,9 +196,9 @@ class Table:
         page_range_count = len(self.page_ranges)
         for page_range_num in reversed(range(page_range_count)):
             for tail_page_num in range(self.page_ranges[page_range_num].current_tail_page+1):
-                tail_page = Bufferpool().hold_tail_page(self.name, page_range_num, 0, tail_page_num, False)
+                tail_page = Bufferpool().hold_tail_page(self.db_path, self.name, page_range_num, 0, tail_page_num, False)
                 offset = tail_page.num_records*8
-                Bufferpool().release_tail_page(self.name, page_range_num, 0, tail_page_num)
+                Bufferpool().release_tail_page(self.db_path, self.name, page_range_num, 0, tail_page_num)
                 while offset > 0:
                     offset -= 8
                     tail_record = self.page_ranges[page_range_num].read_tail_record(tail_page_num, offset)
@@ -228,7 +229,7 @@ class Table:
                                 new_columns.append(og_record[i+7])
                         #print(new_columns)
                         if self.page_ranges[-1].has_capacity() != True:
-                            self.page_ranges.append(Range(7 + self.num_columns, self.key, self.name, len(self.page_ranges)))
+                            self.page_ranges.append(Range(7 + self.num_columns, self.key, self.db_path, self.name, len(self.page_ranges)))
                         page_range = self.page_ranges[-1]
                         new_page_number, new_offset = page_range.add_base_record(new_columns)
                         page_range_number = len(self.page_ranges) - 1
