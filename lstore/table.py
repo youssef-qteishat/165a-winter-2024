@@ -212,7 +212,7 @@ class Table:
 
                         base_record = self.page_ranges[base_page_range].read_base_record(base_page_num, base_offset)
                         if tail_rid <= base_record[TPS_COLUMN]:
-                            continue
+                            break
                         og_page_range, og_page_num, og_offset = self.page_directory[base_record[OG_RID_COLUMN]]
                         og_record = self.page_ranges[og_page_range].read_tail_record(og_page_num, og_offset)
                         new_columns = base_record[:5]

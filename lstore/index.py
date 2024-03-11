@@ -50,7 +50,6 @@ class Index:
     def create_index(self, column_number):
         self.drop_index(column_number)
         self.indices[column_number] = MyBTree()
-        #figure out after we get organization done
         for rid in self.table.baserids:
             val = self.table.read_record(rid, 0)[column_number+7]
             self.addToIndex(column_number, val, rid)

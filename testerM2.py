@@ -1,6 +1,6 @@
 from lstore.db import Database
 from lstore.query import Query
-
+import traceback
 from random import choice, randint, sample, seed
 
 
@@ -63,6 +63,7 @@ def correctness_tester1():
     try:
     # select on columns without index and return multiple records
         result = reorganize_result(query.select(1, 2, [1,1,1,1,1]))
+        print(result)
         if len(result) == 4:
             if records[0] in result and records[1] in result and records[5] in result and records[7] in result:
                 print("PASS[2]")
@@ -82,6 +83,7 @@ def correctness_tester1():
         else:
             print("Error[3]")
     except Exception as e:
+        print(e)
         print("Wrong[3]")
 
     try:
@@ -93,11 +95,15 @@ def correctness_tester1():
         else:
             print("Error[4]")
     except Exception as e:
+        print(traceback.format_exc())
+        print(e)
         print("Wrong[4]")
 
     try:
         # update that changes primary key,
         query.update(7, *[8,2,2,2,2])
+        result = reorganize_result(query.select(8, 0, [1,1,1,1,1]))
+        print(result)
         result = reorganize_result(query.select(7, 0, [1,1,1,1,1]))
         if len(result) == 0:
             print("PASS[5]")
@@ -167,6 +173,8 @@ def correctness_tester2():
         else:
             print("Error[8]")
     except Exception as e:
+        print(traceback.format_exc())
+        print(e)
         print("Wrong[8]")
 
 
