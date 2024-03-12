@@ -1,6 +1,7 @@
 from lstore.page import Page
 import os
 import struct
+import time
 from lstore.config import *
 
 '''
@@ -40,26 +41,44 @@ class Bufferpool:
         if not self.__initialized:
             self.pool = []
             self.locks = {} # stores locks held on pages on disk
+            self.lock = False
             self.__initialized = True
 
+    def get_priority(self):
+        while(self.lock):
+            time.sleep(0.1)
+        self.lock = True
+        return
+    
+    def release_priority(self):
+        if( not self.lock):
+            raise Exception("Faulty Lock")
+        self.lock = False
+        return
+
     def acquire_lock(self, tid, file_path, offset, exclusive_bool):
+        self.get_priority()
         if file_path not in self.locks.keys():
             self.locks[file_path] =  []
         else:
             for lock in self.locks[file_path]:
                 if ((lock.exclusive and exclusive_bool) and (lock.tid != tid)):
+                    self.release_priority()
                     return False
                 if ((lock.offset == offset) and (lock.exclusive or exclusive_bool) and (lock.tid != tid)):
+                    self.release_priority()
                     return False
         lock = Lock()
         lock.exclusive = exclusive_bool
         lock.offset = offset
         lock.tid = tid
         self.locks.append(lock)
+        self.release_priority()
         return True
             #self.locks[page_num]:  # Wait until lock is released (lock status becomes False)
 
     def release_lock(self, tid, file_path, offset, exclusive_bool):
+        self.get_priority()
         if file_path in self.locks.keys():
             for lock in self.locks[file_path]:
                 if (lock.tid == tid and lock.offset == offset and lock.exclusive_bool == exclusive_bool):
@@ -77,11 +96,14 @@ class Bufferpool:
                     self.locks[file_path].remove(lock)
                     if (not self.locks[file_path]):
                         self.locks.pop(file_path)
+                    self.release_priority()
                     return True
+        self.release_priority()
         return False
 
 
     def hold_base_page(self, db, table, page_range, column_num, page_num, dirty_bool):
+        self.get_priority()
         file_path = os.path.join(db, table, "PageRange" + str(page_range), "Column" + str(column_num), "BasePage" + str(page_num) + ".bin")
         page = next((page for page in self.pool if page[0] == file_path), None)
 
@@ -94,6 +116,7 @@ class Bufferpool:
             # upon being loaded the page is pinned by a single page range
             page = [file_path, 1, Page(num_records, data), db, table, page_range, True, page_num, dirty_bool]
             self.pool.insert(0, page)
+            self.release_priority()
             return page[2]
         
         else:
@@ -101,9 +124,11 @@ class Bufferpool:
             self.pool.insert(0, page)
             page[1] += 1
             page[8] = dirty_bool | page[8]
+            self.release_priority()
             return page[2]
 
     def release_base_page(self, db, table, page_range, column_num, page_num):
+        self.get_priority()
         file_path = os.path.join(db, table, "PageRange" + str(page_range), "Column" + str(column_num), "BasePage" + str(page_num) + ".bin")
         page = next((page for page in self.pool if page[0] == file_path), None)
         
@@ -112,9 +137,11 @@ class Bufferpool:
         
         else:
             page[1] -= 1
+        self.release_priority()
     
 
     def hold_tail_page(self, db, table, page_range, column_num, page_num, dirty_bool):
+        self.get_priority()
         file_path = os.path.join(db, table, "PageRange" + str(page_range), "Column" + str(column_num), "TailPage" + str(page_num) + ".bin")
         page = next((page for page in self.pool if page[0] == file_path), None)
 
@@ -127,6 +154,7 @@ class Bufferpool:
             # upon being loaded the page is pinned by a single page range
             page = [file_path, 1, Page(num_records, data), db, table, page_range, False, page_num, dirty_bool]
             self.pool.insert(0, page)
+            self.release_priority()
             return page[2]
         
         else:
@@ -134,9 +162,11 @@ class Bufferpool:
             self.pool.insert(0, page)
             page[1] += 1
             page[8] = dirty_bool | page[8]
+            self.release_priority()
             return page[2]
 
     def release_tail_page(self, db, table, page_range, column_num, page_num):
+        self.get_priority()
         file_path = os.path.join(db, table, "PageRange" + str(page_range), "Column" + str(column_num), "TailPage" + str(page_num) + ".bin")
         page = next((page for page in self.pool if page[0] == file_path), None)
 
@@ -145,30 +175,36 @@ class Bufferpool:
         
         else:
             page[1] -= 1
+        self.release_priority()
     
     def add_base_page(self, db, table, page_range, column_num, page_num):
+        self.get_priority()
         directory_path = os.path.join(db, table, "PageRange" + str(page_range), "Column" + str(column_num))
         os.makedirs(directory_path, exist_ok=True)
         file_path = os.path.join(directory_path, "BasePage" + str(page_num) + ".bin")
         self.write_num_base_records(db, table, page_range, page_num, 0)
         with open(file_path, 'wb') as file:
             file.write(bytearray(PAGESIZE))
+        self.release_priority()
 
     def add_tail_page(self, db, table, page_range, column_num, page_num):
+        self.get_priority()
         directory_path = os.path.join(db, table, "PageRange" + str(page_range), "Column" + str(column_num))
         os.makedirs(directory_path, exist_ok=True)
         file_path = os.path.join(directory_path, "TailPage" + str(page_num) + ".bin")
         self.write_num_tail_records(db, table, page_range, page_num, 0)
         with open(file_path, 'wb') as file:
             file.write(bytearray(PAGESIZE))
+        self.release_priority()
 
     def dump_pool(self):
-
+        self.get_priority()
         while len(self.pool) != 0:
             self.evict_page()
 
         if len(self.pool) != 0:
             raise Exception("Cannot dump bufferpool")
+        self.release_priority()
 
     def read_num_base_records(self, db, table, page_range, page_num):
         path = os.path.join(db, table, "PageRange" + str(page_range), "BasePageRecordCounts.bin")
