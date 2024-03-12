@@ -34,6 +34,9 @@ class Table:
         self.index = Index(self)
         self.update_count = 0
 
+    def get_insert_record_locks():
+        return True, []
+
     def insert_record(self, columns):
         """
         Add a new base record to the table with columnar values

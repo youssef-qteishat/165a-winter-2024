@@ -169,3 +169,7 @@ class Query:
             u = self.update(key, *updated_columns)
             return u
         return False
+    
+    @staticmethod
+    def aquire_insert_locks(table, args):
+        return table.get_insert_record_locks(*args)
