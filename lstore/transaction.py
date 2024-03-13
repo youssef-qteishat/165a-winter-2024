@@ -1,6 +1,9 @@
 from lstore.table import Table, Record
 from lstore.index import Index
 from lstore.query import Query
+from lstore.bufferpool import Bufferpool
+
+import time
 
 counter = 0
 
@@ -28,23 +31,32 @@ class Transaction:
         
     # If you choose to implement this differently this method must still return True if transaction commits or False on abort
     def run(self):
-        if (not self.aquire()):
+        flag = False
+        for i in range(0, 10): 
+            flag = self.aquire()
+            if flag == True:
+                break
+            self.release()
+            time.sleep(0.1)
+        if flag == False:
             return self.abort()
+            
         for query, table, args in self.queries:
             result = query(*args)
             # If the query has failed the transaction should abort
             if result == False:
                 return self.abort()
+
         return self.commit()
 
     
     def abort(self):
-        #TODO: do roll-back and any other necessary operations
+        self.release()
         return False
 
     
     def commit(self):
-        # TODO: commit to database
+        self.release()
         return True
     
     def aquire(self):
@@ -54,7 +66,7 @@ class Transaction:
             if query.__func__ is Query.delete:
                 pass
             if query.__func__ is Query.insert:
-                success, operation_locks = Query.aquire_insert_locks(table, *args, self.tid)
+                success, operation_locks = Query.aquire_insert_locks(table, self.tid, args)
             if query.__func__ is Query.select:
                 pass
             if query.__func__ is Query.select_version:
@@ -71,3 +83,7 @@ class Transaction:
             if success is False:
                 return False
             return True
+    
+    def release(self):
+        for lock in self.locks:
+            Bufferpool().release_lock(lock[0], lock[1], lock[2], lock[3])

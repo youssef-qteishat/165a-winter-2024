@@ -35,9 +35,28 @@ class Table:
         self.update_count = 0
 
     def get_insert_record_locks(self, columns, tid):
-        db_name, table_name, page_range, base_page_bool, page_number = (self.db_path, self.name, len[self.page_ranges], True, self.page_ranges[-1].current_base_page)
-        
-        return True, []
+        db_name, table_name, page_range, base_page_bool, page_number = (self.db_path, self.name, len(self.page_ranges) - 1, True, self.page_ranges[-1].current_base_page)
+        locks = []
+        page = Bufferpool().hold_base_page(db_name, table_name, page_range, 0, page_number, False, True)
+        offset = page.num_records
+        Bufferpool().release_base_page(db_name, table_name, page_range, 0, page_number)
+        while(True):
+            current_locks = Bufferpool().get_locks((db_name, table_name, page_range, base_page_bool, page_number))
+            for lock in current_locks:
+                if lock.tid != tid and lock.offset >= offset:
+                    return False, locks
+                if lock.tid == tid and lock.offset > offset:
+                    offset = lock.offset
+            if offset >= PAGECAP - 1:
+                offset = 0
+                page_number += 1
+                continue
+            if Bufferpool().acquire_lock(tid, (db_name, table_name, page_range, base_page_bool, page_number), offset, True):
+                locks.append([tid, (db_name, table_name, page_range, base_page_bool, page_number), offset, True])
+                break
+            else:
+                return False, locks
+        return True, locks
 
     def insert_record(self, columns):
         """

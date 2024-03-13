@@ -171,7 +171,7 @@ class Query:
         return False
     
     @staticmethod
-    def aquire_insert_locks(table, *columns, tid):
+    def aquire_insert_locks(table, tid, *columns):
         if table.index.has_key(columns[table.key]):
             return False, []
         rids = table.index.locate(table.key, columns[table.key])
