@@ -54,7 +54,7 @@ class Transaction:
             if query.__func__ is Query.delete:
                 pass
             if query.__func__ is Query.insert:
-                success, operation_locks = Query.aquire_insert_locks(table, args, self.tid)
+                success, operation_locks = Query.aquire_insert_locks(table, *args, self.tid)
             if query.__func__ is Query.select:
                 pass
             if query.__func__ is Query.select_version:
@@ -67,7 +67,7 @@ class Transaction:
                 pass
             if query.__func__ is Query.increment:
                 pass
+            self.locks.extend(operation_locks)
             if success is False:
                 return False
-            self.locks.extend(operation_locks)
             return True

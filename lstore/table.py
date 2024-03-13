@@ -34,7 +34,9 @@ class Table:
         self.index = Index(self)
         self.update_count = 0
 
-    def get_insert_record_locks():
+    def get_insert_record_locks(self, columns, tid):
+        db_name, table_name, page_range, base_page_bool, page_number = (self.db_path, self.name, len[self.page_ranges], True, self.page_ranges[-1].current_base_page)
+        
         return True, []
 
     def insert_record(self, columns):
@@ -199,7 +201,7 @@ class Table:
         page_range_count = len(self.page_ranges)
         for page_range_num in reversed(range(page_range_count)):
             for tail_page_num in range(self.page_ranges[page_range_num].current_tail_page+1):
-                tail_page = Bufferpool().hold_tail_page(self.db_path, self.name, page_range_num, 0, tail_page_num, False)
+                tail_page = Bufferpool().hold_tail_page(self.db_path, self.name, page_range_num, 0, tail_page_num, False, True)
                 offset = tail_page.num_records*8
                 Bufferpool().release_tail_page(self.db_path, self.name, page_range_num, 0, tail_page_num)
                 while offset > 0:

@@ -2,6 +2,7 @@ from lstore.page import Page
 import os
 import struct
 import time
+import threading
 from lstore.config import *
 
 '''
@@ -11,12 +12,15 @@ each page stores the file-path of that page (unique to each page),
 whether or not it is currently pinned, the page itself, the table name,
 the page range, if it is a base or tail page, and the number within the range.
 
+The spec_offset is the speculative offset after all currently aquired locks are 
+released, this allows the lock takers to take locks on pages that are not yet created.
+
 [
-    [file_path_0, pinned_val, Page(), db_name, table_name, page_range, base_page_bool, page_number, dirty_bool],
-    [file_path_1, pinned_val, Page(), db_name, table_name, page_range, base_page_bool, page_number, dirty_bool],
-    [file_path_2, pinned_val, Page(), db_name, table_name, page_range, base_page_bool, page_number, dirty_bool],
+    [file_path_0, pinned_val, Page(), db_name, table_name, page_range, base_page_bool, page_number, dirty_bool, spec_offset],
+    [file_path_1, pinned_val, Page(), db_name, table_name, page_range, base_page_bool, page_number, dirty_bool, spec_offset],
+    [file_path_2, pinned_val, Page(), db_name, table_name, page_range, base_page_bool, page_number, dirty_bool, spec_offset],
     ...
-    [file_path_15, pinned_val, Page(), db_name, table_name, page_range, base_page_bool, page_number, dirty_bool]
+    [file_path_15, pinned_val, Page(), db_name, table_name, page_range, base_page_bool, page_number, dirty_bool, spec_offset]
 }
 
 calling acquire and release lock when holding and releasing pages is temporary until
@@ -42,26 +46,27 @@ class Bufferpool:
             self.pool = []
             self.locks = {} # stores locks held on pages on disk
             self.lock = False
+            self.lock_lock = threading.Lock()
             self.__initialized = True
 
     def get_priority(self):
-        while(self.lock):
-            time.sleep(0.1)
-        self.lock = True
-        return
+        with self.lock_lock:
+            while(self.lock):
+                time.sleep(0.1)
+            self.lock = True
     
     def release_priority(self):
-        if( not self.lock):
-            raise Exception("Faulty Lock")
-        self.lock = False
-        return
+        with self.lock_lock:
+            if( not self.lock):
+                raise Exception("Faulty Lock")
+            self.lock = False
 
-    def acquire_lock(self, tid, file_path, offset, exclusive_bool):
+    def acquire_lock(self, tid, page_key, offset, exclusive_bool):
         self.get_priority()
-        if file_path not in self.locks.keys():
-            self.locks[file_path] =  []
+        if page_key not in self.locks.keys():
+            self.locks[page_key] =  []
         else:
-            for lock in self.locks[file_path]:
+            for lock in self.locks[page_key]:
                 if ((lock.exclusive and exclusive_bool) and (lock.tid != tid)):
                     self.release_priority()
                     return False
@@ -77,13 +82,14 @@ class Bufferpool:
         return True
             #self.locks[page_num]:  # Wait until lock is released (lock status becomes False)
 
-    def release_lock(self, tid, file_path, offset, exclusive_bool):
+    def release_lock(self, tid, page_key, offset, exclusive_bool):
         self.get_priority()
-        if file_path in self.locks.keys():
-            for lock in self.locks[file_path]:
+        if page_key in self.locks.keys():
+            for lock in self.locks[page_key]:
                 if (lock.tid == tid and lock.offset == offset and lock.exclusive_bool == exclusive_bool):
+                    db_name, table_name, page_range, base_page_bool, page_number = page_key
                     for page in self.pool:
-                        if lock.file_path == page[0]:
+                        if db_name == page[3] and table_name == page[4] and page_range == page[5] and base_page_bool == page[6] and page_number == page[7]:
                             if page[1] == 0:
                                 if page[8] == True:
                                     with open(page[0], 'wb') as file:
@@ -93,16 +99,16 @@ class Bufferpool:
                                     else:
                                         self.write_num_tail_records(page[3], page[4], page[5], page[7], page[2].num_records)
                                     page[8] = False
-                    self.locks[file_path].remove(lock)
-                    if (not self.locks[file_path]):
-                        self.locks.pop(file_path)
+                    self.locks[page_key].remove(lock)
+                    if (not self.locks[page_key]):
+                        self.locks.pop(page_key)
                     self.release_priority()
                     return True
         self.release_priority()
         return False
 
 
-    def hold_base_page(self, db, table, page_range, column_num, page_num, dirty_bool):
+    def hold_base_page(self, db, table, page_range, column_num, page_num, dirty_bool, page_only):
         self.get_priority()
         file_path = os.path.join(db, table, "PageRange" + str(page_range), "Column" + str(column_num), "BasePage" + str(page_num) + ".bin")
         page = next((page for page in self.pool if page[0] == file_path), None)
@@ -114,18 +120,20 @@ class Bufferpool:
                 data = bytearray(file.read())
             num_records = self.read_num_base_records(db, table, page_range, page_num)
             # upon being loaded the page is pinned by a single page range
-            page = [file_path, 1, Page(num_records, data), db, table, page_range, True, page_num, dirty_bool]
+            page = [file_path, 1, Page(num_records, data), db, table, page_range, True, page_num, dirty_bool, num_records]
             self.pool.insert(0, page)
-            self.release_priority()
-            return page[2]
         
         else:
             self.pool.remove(page)
             self.pool.insert(0, page)
             page[1] += 1
             page[8] = dirty_bool | page[8]
-            self.release_priority()
+
+        self.release_priority()
+        if page_only:
             return page[2]
+        else:
+            return page
 
     def release_base_page(self, db, table, page_range, column_num, page_num):
         self.get_priority()
@@ -140,7 +148,7 @@ class Bufferpool:
         self.release_priority()
     
 
-    def hold_tail_page(self, db, table, page_range, column_num, page_num, dirty_bool):
+    def hold_tail_page(self, db, table, page_range, column_num, page_num, dirty_bool, page_only):
         self.get_priority()
         file_path = os.path.join(db, table, "PageRange" + str(page_range), "Column" + str(column_num), "TailPage" + str(page_num) + ".bin")
         page = next((page for page in self.pool if page[0] == file_path), None)
@@ -152,18 +160,20 @@ class Bufferpool:
                 data = bytearray(file.read())
             num_records = self.read_num_tail_records(db, table, page_range, page_num)
             # upon being loaded the page is pinned by a single page range
-            page = [file_path, 1, Page(num_records, data), db, table, page_range, False, page_num, dirty_bool]
+            page = [file_path, 1, Page(num_records, data), db, table, page_range, False, page_num, dirty_bool, num_records]
             self.pool.insert(0, page)
-            self.release_priority()
-            return page[2]
         
         else:
             self.pool.remove(page)
             self.pool.insert(0, page)
             page[1] += 1
             page[8] = dirty_bool | page[8]
-            self.release_priority()
+
+        self.release_priority()
+        if page_only:
             return page[2]
+        else:
+            return page
 
     def release_tail_page(self, db, table, page_range, column_num, page_num):
         self.get_priority()
@@ -286,6 +296,7 @@ class Bufferpool:
                     self.pool.remove(page)
                 return True
         raise Exception("Deadlock has occurred")
+        
 
     
     
