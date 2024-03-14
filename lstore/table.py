@@ -57,6 +57,40 @@ class Table:
             else:
                 return False, locks
         return True, locks
+    def get_select_record_locks(self, tid, search_key, search_key_index):
+        db_name, table_name  = (self.db_path, self.name)
+        locks = []
+        required_pages = []
+        rids = self.index.locate(search_key_index, search_key)
+        if rids == None:
+            return True
+        for rid in rids:
+            page_range, page_number, offset = self.page_directory.get(rid)
+            if (page_range, page_number, offset) not in required_pages:
+                required_pages.append((page_range, page_number, offset))
+        for page_range, page_number, offset in required_pages:
+            if Bufferpool().acquire_lock(tid, (db_name, table_name, page_range, True, page_number), offset, False):
+                locks.append([tid, (db_name, table_name, page_range, True, page_number), offset, False])
+            else:
+                return False, locks
+        return True, locks
+    def get_sum_record_locks(self, tid, start_range, end_range):
+        db_name, table_name  = (self.db_path, self.name)
+        locks = []
+        required_pages = []
+        rids = self.index.locate_range(search_key_index, search_key)
+        if rids == None:
+            return True
+        for rid in rids:
+            page_range, page_number, offset = self.page_directory.get(rid)
+            if (page_range, page_number, offset) not in required_pages:
+                required_pages.append((page_range, page_number, offset))
+        for page_range, page_number, offset in required_pages:
+            if Bufferpool().acquire_lock(tid, (db_name, table_name, page_range, True, page_number), offset, False):
+                locks.append([tid, (db_name, table_name, page_range, True, page_number), offset, False])
+            else:
+                return False, locks
+        return True, locks
 
     def insert_record(self, columns):
         """

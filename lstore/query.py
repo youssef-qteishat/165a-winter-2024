@@ -178,3 +178,8 @@ class Query:
         if rids != None:
             return False, []
         return table.get_insert_record_locks(*columns, tid)
+    @staticmethod
+    def aquire_select_locks(table, tid, args):
+        return table.get_select_record_locks(tid, args[0], args[1])
+    def aquire_sum_locks(table, tid, args):
+        return table.get_sum_locks(tid, args[0], args[1])

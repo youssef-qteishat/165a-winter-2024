@@ -68,15 +68,15 @@ class Transaction:
             if query.__func__ is Query.insert:
                 success, operation_locks = Query.aquire_insert_locks(table, self.tid, args)
             if query.__func__ is Query.select:
-                pass
+                success, operation_locks = Query.aquire_select_locks(table, self.tid, args)
             if query.__func__ is Query.select_version:
-                pass
+                success, operation_locks = Query.aquire_select_locks(table, self.tid, args)
             if query.__func__ is Query.update:
                 pass
             if query.__func__ is Query.sum:
-                pass
-            if query.__func__ is Query.select_version:
-                pass
+                success, operation_locks = Query.aquire_sum_locks(table, self.tid, args)
+            if query.__func__ is Query.sum_version:
+                success, operation_locks = Query.aquire_sum_locks(table, self.tid, args)
             if query.__func__ is Query.increment:
                 pass
             self.locks.extend(operation_locks)
