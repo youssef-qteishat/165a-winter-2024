@@ -32,22 +32,24 @@ class Transaction:
     # If you choose to implement this differently this method must still return True if transaction commits or False on abort
     def run(self):
         flag = False
+        lock_failure = False
         for i in range(0, 10): 
-            flag = self.aquire()
-            if flag == True:
+            flag, lock_failure = self.aquire()
+            if flag == True or lock_failure == False:
                 break
             self.release()
             time.sleep(0.1)
         if flag == False:
-            return self.abort()
+            self.abort()
+            return flag, lock_failure
             
         for query, table, args in self.queries:
             result = query(*args)
             # If the query has failed the transaction should abort
             if result == False:
-                return self.abort()
+                return self.abort(), False
 
-        return self.commit()
+        return self.commit(), False
 
     
     def abort(self):
@@ -68,23 +70,21 @@ class Transaction:
             if query.__func__ is Query.delete:
                 pass
             if query.__func__ is Query.insert:
-                success, operation_locks = Query.aquire_insert_locks(table, self.tid, args)
+                success, lock_failure, operation_locks = Query.aquire_insert_locks(table, self.tid, args)
             if query.__func__ is Query.select:
-                success, operation_locks = Query.aquire_select_locks(table, self.tid, args)
+                success, lock_failure, operation_locks = Query.aquire_select_locks(table, self.tid, args)
             if query.__func__ is Query.select_version:
-                success, operation_locks = Query.aquire_select_locks(table, self.tid, args)
+                success, lock_failure, operation_locks = Query.aquire_select_locks(table, self.tid, args)
             if query.__func__ is Query.update:
-                success, operation_locks = Query.aquire_update_locks(table, self.tid, args)
+                success, lock_failure, operation_locks = Query.aquire_update_locks(table, self.tid, args)
             if query.__func__ is Query.sum:
-                success, operation_locks = Query.aquire_sum_locks(table, self.tid, args)
+                success, lock_failure, operation_locks = Query.aquire_sum_locks(table, self.tid, args)
             if query.__func__ is Query.sum_version:
-                success, operation_locks = Query.aquire_sum_locks(table, self.tid, args)
+                success, lock_failure, operation_locks = Query.aquire_sum_locks(table, self.tid, args)
             if query.__func__ is Query.increment:
                 pass
             self.locks.extend(operation_locks)
-            if success is False:
-                return False
-            return True
+            return success, lock_failure
     
     def release(self):
         for lock in self.locks:

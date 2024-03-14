@@ -44,7 +44,7 @@ class Table:
             current_locks = Bufferpool().get_locks((db_name, table_name, page_range, base_page_bool, page_number))
             for lock in current_locks:
                 if lock.tid != tid and lock.offset >= offset:
-                    return False, locks
+                    return False, True, locks
                 if lock.tid == tid and lock.offset > offset:
                     offset = lock.offset
             if offset >= PAGECAP - 1:
@@ -55,15 +55,15 @@ class Table:
                 locks.append([tid, (db_name, table_name, page_range, base_page_bool, page_number), offset, True])
                 break
             else:
-                return False, locks
-        return True, locks
+                return False, True, locks
+        return True, False, locks
     def get_select_record_locks(self, tid, search_key, search_key_index):
         db_name, table_name  = (self.db_path, self.name)
         locks = []
         required_pages = []
         rids = self.index.locate(search_key_index, search_key)
         if rids == None:
-            return True
+            return True, False, locks
         for rid in rids:
             page_range, page_number, offset = self.page_directory.get(rid)
             if (page_range, page_number, offset) not in required_pages:
@@ -72,8 +72,8 @@ class Table:
             if Bufferpool().acquire_lock(tid, (db_name, table_name, page_range, True, page_number), offset, False):
                 locks.append([tid, (db_name, table_name, page_range, True, page_number), offset, False])
             else:
-                return False, locks
-        return True, locks
+                return False, True, locks
+        return True, False, locks
 
     def get_sum_record_locks(self, tid, start_range, end_range):
         db_name, table_name  = (self.db_path, self.name)
@@ -81,7 +81,7 @@ class Table:
         required_pages = []
         rids = self.index.locate_range(search_key_index, search_key)
         if rids == None:
-            return False
+            return False, False, locks
         for rid in rids:
             page_range, page_number, offset = self.page_directory.get(rid)
             if (page_range, page_number, offset) not in required_pages:
@@ -90,8 +90,8 @@ class Table:
             if Bufferpool().acquire_lock(tid, (db_name, table_name, page_range, True, page_number), offset, False):
                 locks.append([tid, (db_name, table_name, page_range, True, page_number), offset, False])
             else:
-                return False, locks
-        return True, locks
+                return False, True, locks
+        return True, False, locks
 
     def get_update_record_locks(self, tid, search_key):
         db_name, table_name  = (self.db_path, self.name)
@@ -99,13 +99,13 @@ class Table:
         required_pages = []
         rids = self.index.locate(self.key, search_key)
         if rids == None or len(rids) > 1:
-            return False
+            return False, False, locks
         rid = list(rids)[0]
         page_range, page_number, offset = self.page_directory.get(rid)
         if Bufferpool().acquire_lock(tid, (db_name, table_name, page_range, True, page_number), offset, True):
             locks.append([tid, (db_name, table_name, page_range, True, page_number), offset, True])
         else:
-            return False, locks
+            return False, True, locks
         page_number = self.page_ranges[page_range].current_tail_page
         locks = []
         page = Bufferpool().hold_tail_page(db_name, table_name, page_range, 0, page_number, False, True)
@@ -115,7 +115,7 @@ class Table:
             current_locks = Bufferpool().get_locks((db_name, table_name, page_range, False, page_number))
             for lock in current_locks:
                 if lock.tid != tid and lock.offset >= offset:
-                    return False, locks
+                    return False, True, locks
                 if lock.tid == tid and lock.offset > offset:
                     offset = lock.offset
             if offset >= PAGECAP - 1:
@@ -126,8 +126,8 @@ class Table:
                 locks.append([tid, (db_name, table_name, page_range, False, page_number), offset, True])
                 break
             else:
-                return False, locks
-        return True, locks
+                return False, True, locks
+        return True, False, locks
 
     def insert_record(self, columns):
         """
