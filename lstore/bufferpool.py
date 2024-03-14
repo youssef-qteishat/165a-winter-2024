@@ -56,7 +56,6 @@ class Bufferpool:
                     self.lock = True
                     return
             time.sleep(0.1)
-            continue
     
     def release_priority(self):
         with self.lock_lock:
