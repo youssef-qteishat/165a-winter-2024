@@ -74,13 +74,14 @@ class Table:
             else:
                 return False, locks
         return True, locks
+
     def get_sum_record_locks(self, tid, start_range, end_range):
         db_name, table_name  = (self.db_path, self.name)
         locks = []
         required_pages = []
         rids = self.index.locate_range(search_key_index, search_key)
         if rids == None:
-            return True
+            return False
         for rid in rids:
             page_range, page_number, offset = self.page_directory.get(rid)
             if (page_range, page_number, offset) not in required_pages:
@@ -88,6 +89,42 @@ class Table:
         for page_range, page_number, offset in required_pages:
             if Bufferpool().acquire_lock(tid, (db_name, table_name, page_range, True, page_number), offset, False):
                 locks.append([tid, (db_name, table_name, page_range, True, page_number), offset, False])
+            else:
+                return False, locks
+        return True, locks
+
+    def get_update_record_locks(self, tid, search_key):
+        db_name, table_name  = (self.db_path, self.name)
+        locks = []
+        required_pages = []
+        rids = self.index.locate(self.key, search_key)
+        if rids == None or len(rids) > 1:
+            return False
+        rid = list(rids)[0]
+        page_range, page_number, offset = self.page_directory.get(rid)
+        if Bufferpool().acquire_lock(tid, (db_name, table_name, page_range, True, page_number), offset, True):
+            locks.append([tid, (db_name, table_name, page_range, True, page_number), offset, True])
+        else:
+            return False, locks
+        page_number = self.page_ranges[page_range].current_tail_page
+        locks = []
+        page = Bufferpool().hold_tail_page(db_name, table_name, page_range, 0, page_number, False, True)
+        offset = page.num_records
+        Bufferpool().release_tail_page(db_name, table_name, page_range, 0, page_number)
+        while(True):
+            current_locks = Bufferpool().get_locks((db_name, table_name, page_range, False, page_number))
+            for lock in current_locks:
+                if lock.tid != tid and lock.offset >= offset:
+                    return False, locks
+                if lock.tid == tid and lock.offset > offset:
+                    offset = lock.offset
+            if offset >= PAGECAP - 1:
+                offset = 0
+                page_number += 1
+                continue
+            if Bufferpool().acquire_lock(tid, (db_name, table_name, page_range, False, page_number), offset, True):
+                locks.append([tid, (db_name, table_name, page_range, False, page_number), offset, True])
+                break
             else:
                 return False, locks
         return True, locks

@@ -102,8 +102,10 @@ class Query:
     # Returns False if no records exist with given key or if the target record cannot be accessed due to 2PL locking
     """
     def update(self, primary_key, *columns):
+        '''
         if (columns[self.table.key] != None) and (self.table.index.has_key(columns[self.table.key])):
             return False
+        '''
         rid = self.table.index.locate(self.table.key, primary_key)
         if rid == None or len(rid) > 1:
             return False
@@ -182,4 +184,6 @@ class Query:
     def aquire_select_locks(table, tid, args):
         return table.get_select_record_locks(tid, args[0], args[1])
     def aquire_sum_locks(table, tid, args):
-        return table.get_sum_locks(tid, args[0], args[1])
+        return table.get_sum_record_locks(tid, args[0], args[1])
+    def aquire_update_locks(table, tid, args):
+        return table.get_update_record_locks(tid, args[0])

@@ -51,11 +51,13 @@ class Transaction:
 
     
     def abort(self):
+        print("aborted!")
         self.release()
         return False
 
     
     def commit(self):
+        print("committed!")
         self.release()
         return True
     
@@ -72,7 +74,7 @@ class Transaction:
             if query.__func__ is Query.select_version:
                 success, operation_locks = Query.aquire_select_locks(table, self.tid, args)
             if query.__func__ is Query.update:
-                pass
+                success, operation_locks = Query.aquire_update_locks(table, self.tid, args)
             if query.__func__ is Query.sum:
                 success, operation_locks = Query.aquire_sum_locks(table, self.tid, args)
             if query.__func__ is Query.sum_version:
