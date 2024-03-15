@@ -107,7 +107,6 @@ class Table:
         else:
             return False, True, locks
         page_number = self.page_ranges[page_range].current_tail_page
-        locks = []
         page = Bufferpool().hold_tail_page(db_name, table_name, page_range, 0, page_number, False, True)
         offset = page.num_records
         Bufferpool().release_tail_page(db_name, table_name, page_range, 0, page_number)
