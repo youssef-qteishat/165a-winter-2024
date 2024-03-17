@@ -36,7 +36,7 @@ thread1.start()
 thread2.start()
 
 # Wait for both threads to finish
-thread1.join()
+print(thread1.join())
 thread2.join()
 
 
@@ -63,16 +63,16 @@ transaction3.append(Transaction())
 transaction3[0].add_query(query.update, grades_table, 1, *[1, 22, 33, 44, 55])
 transaction3[0].add_query(query.update, grades_table, 6, *[6, 77, 88, 99, 100])
 transaction3[0].add_query(query.update, grades_table, 6, *[6, 77, 19231230, 99, 100])
-transaction3[1].add_query(query.update, grades_table, 11, *[11, 2, 3, 4, 5])
 transaction3[1].add_query(query.update, grades_table, 16, *[16, 6, 7, 8, 9])
 
 thread5 = threading.Thread(target=run_trans, args=(transaction3[0],))
 thread6 = threading.Thread(target=run_trans, args=(transaction3[1],))
 
 thread5.start()
-thread6.start()
 
+thread6.start()
 thread5.join()
+
 thread6.join()
 
 

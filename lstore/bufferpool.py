@@ -27,6 +27,11 @@ calling acquire and release lock when holding and releasing pages is temporary u
 we write new functions to aquire all locks for an transaction and then release them all at the end.
 this is done to satisfy 2PL protocol
 '''
+
+class Index_Lock:
+    exclusive = False
+    tid = None
+
 class Lock:
     exclusive = False
     offset = None

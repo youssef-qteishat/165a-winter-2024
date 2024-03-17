@@ -23,14 +23,27 @@ class Index:
             self.create_index(i)
         #if value got updated need to reindex
         self.updated = [0] * table.num_columns
+        self.index_lock_tid = None
         pass
+    def get_index_lock(self, tid):
+        if tid != self.index_lock_tid and self.index_lock_tid != None:
+            return False
+        return True
+    def acquire_index_lock(self, tid):
+        if tid != self.index_lock_tid and self.index_lock_tid != None:
+            return False
+        self.index_lock_tid = tid
+        return True
+    def release_index_lock(self, tid):
+        self.index_lock_tid = None
+        return True
 
     """
     # returns the location of all records with the given value on column "column"
     """
 
     def locate(self, column, value):
-        self.update_index_old(column)
+        self.update_index(column)
         if self.indices[column] is None:
             self.drop_index(column)
             self.create_index(column)
@@ -42,7 +55,7 @@ class Index:
     """
 
     def locate_range(self, begin, end, column):
-        self.update_index_old(column)
+        self.update_index(column)
         ridlists = self.indices[column].values(min = begin, max = end)
         rv = []
         for ridlist in ridlists:
@@ -76,23 +89,11 @@ class Index:
         self.indices[column_number] = None
         self.updated[column_number] = 0
     
-    def update_index_old(self, column_number):
+    def update_index(self, column_number):
         if self.indices[column_number] is None or self.updated[column_number] == 1:
             self.drop_index(column_number)
             self.create_index(column_number)
             self.updated[column_number] = 0
-
-    def update_index(self, column_number, val, oldval, rid):
-        if(self.indices[column_number] == None or self.indices[column_number].get(oldval) == None):
-            return False
-        self.indices[column_number][oldval].remove(rid)
-        if len(self.indices[column_number][oldval]) == 0:
-            self.indices[column_number].__delitem__(oldval)
-        if self.indices[column_number].get(val) == None:
-            self.indices[column_number][val] = {rid}
-        else:
-            self.indices[column_number][val].add(rid)
-        return True
 
     def has_key(self, key):
         if key in self.indices[self.table.key]:

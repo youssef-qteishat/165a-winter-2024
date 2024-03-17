@@ -45,6 +45,7 @@ class Transaction:
             
         for query, table, args in self.queries:
             result = query(*args)
+            #print(self.tid, "ran", query.__name__, "with args", args)
             # If the query has failed the transaction should abort
             if result == False:
                 return self.abort(), False
@@ -53,13 +54,13 @@ class Transaction:
 
     
     def abort(self):
-        print("aborted!")
+        #print("aborted!")
         self.release()
         return False
 
     
     def commit(self):
-        print("committed!")
+        #print("committed!")
         self.release()
         return True
     
@@ -68,7 +69,7 @@ class Transaction:
             success = None
             operation_locks = None
             if query.__func__ is Query.delete:
-                pass
+                success, lock_failure, operation_locks = Query.aquire_delete_locks(table, self.tid, args)
             if query.__func__ is Query.insert:
                 success, lock_failure, operation_locks = Query.aquire_insert_locks(table, self.tid, args)
             if query.__func__ is Query.select:
@@ -84,7 +85,9 @@ class Transaction:
             if query.__func__ is Query.increment:
                 pass
             self.locks.extend(operation_locks)
-            return success, lock_failure
+            if success == False:
+                return success, lock_failure
+        return success, lock_failure
     
     def release(self):
         for lock in self.locks:

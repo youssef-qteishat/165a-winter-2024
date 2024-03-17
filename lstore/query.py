@@ -85,7 +85,6 @@ class Query:
         rids = self.table.index.locate(search_key_index, search_key)
         if rids == None:
             return []
-
         records = []
         for rid in rids:
             record = self.table.read_record(rid, relative_version)
@@ -173,17 +172,20 @@ class Query:
         return False
     
     @staticmethod
-    def aquire_insert_locks(table, tid, *columns):
-        if table.index.has_key(columns[table.key]):
-            return False, False, []
+    def aquire_insert_locks(table, tid, columns):
         rids = table.index.locate(table.key, columns[table.key])
         if rids != None:
             return False, False, []
-        return table.get_insert_record_locks(*columns, tid)
+        return table.get_insert_record_locks(columns, tid)
+    @staticmethod
+    def aquire_delete_locks(table, tid, args):
+        return table.get_delete_record_locks(tid, args[0])
     @staticmethod
     def aquire_select_locks(table, tid, args):
         return table.get_select_record_locks(tid, args[0], args[1])
+    @staticmethod
     def aquire_sum_locks(table, tid, args):
         return table.get_sum_record_locks(tid, args[0], args[1])
+    @staticmethod
     def aquire_update_locks(table, tid, args):
         return table.get_update_record_locks(tid, args[0])

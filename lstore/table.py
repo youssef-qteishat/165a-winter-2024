@@ -57,6 +57,21 @@ class Table:
             else:
                 return False, True, locks
         return True, False, locks
+
+    def get_delete_record_locks(self, tid, search_key):
+        db_name, table_name  = (self.db_path, self.name)
+        locks = []
+        required_pages = []
+        rids = self.index.locate(self.key, search_key)
+        if rids == None or len(rids) > 1:
+            return False, False, locks
+        rid = list(rids)[0]
+        page_range, page_number, offset = self.page_directory.get(rid)
+        if Bufferpool().acquire_lock(tid, (db_name, table_name, page_range, True, page_number), offset, True):
+            locks.append([tid, (db_name, table_name, page_range, True, page_number), offset, True])
+        else:
+            return False, True, locks
+        return True, False, locks
     def get_select_record_locks(self, tid, search_key, search_key_index):
         db_name, table_name  = (self.db_path, self.name)
         locks = []
@@ -199,7 +214,6 @@ class Table:
         return tail_columns
 
     def update_record(self, columns, baserid):
-        
         lastrecord = self.read_record(baserid, 0)
         lastrid = lastrecord[RID_COLUMN]
         ogrid = lastrecord[OG_RID_COLUMN]
@@ -223,12 +237,13 @@ class Table:
             copy_tail_page_number, copy_offset = self.page_ranges[basepagerange].add_tail_record(copy_tail_columns)
             self.page_directory.update({copy_rid: [basepagerange, copy_tail_page_number, copy_offset]})
             self.page_ranges[basepagerange].change_og_rid(basepagenum, baseoffset, copy_rid)
-        
+            ogrid = copy_rid
+            lastrid = ogrid
         
         rid = self.get_new_rid()
         self.page_ranges[basepagerange].change_indirection(basepagenum, baseoffset, rid)
         self.page_ranges[basepagerange].change_schema_encoding(basepagenum, baseoffset, schema_encoding)
-
+        
         # load the colomn daat into a list
         tail_columns = [lastrid, rid, int(1000000 * time()), schema_encoding, baserid, baserid, ogrid] + columns
         for i in range(7, len(tail_columns)):
@@ -236,11 +251,11 @@ class Table:
                 if tail_columns[i] == None:
                     tail_columns[i] = lastrecord[i]
                 else:
-                    self.index.update_index(i-7, tail_columns[i], lastrecord[i], baserid)
+                    self.index.updated[i-7] = 1
         # add the tail record and remember its location
         tail_page_number, offset = self.page_ranges[basepagerange].add_tail_record(tail_columns)
         page_range_number = len(self.page_ranges) - 1
-
+    
         # store the rid and location of the record in the page directory
         self.page_directory.update({rid: [basepagerange, tail_page_number, offset]})
         # return the rid to the caller (mostly used for testing right now)
@@ -285,7 +300,6 @@ class Table:
         self.page_directory.pop(rid)
 
     def __merge(self):
-        print("merge is happening")
         mergedrids = []
         page_range_count = len(self.page_ranges)
         for page_range_num in reversed(range(page_range_count)):
@@ -307,7 +321,6 @@ class Table:
 
                         base_record = self.page_ranges[base_page_range].read_base_record(base_page_num, base_offset)
                         if tail_rid <= base_record[TPS_COLUMN]:
-                            print("merge less")
                             return
                         og_page_range, og_page_num, og_offset = self.page_directory[base_record[OG_RID_COLUMN]]
                         og_record = self.page_ranges[og_page_range].read_tail_record(og_page_num, og_offset)
@@ -321,7 +334,6 @@ class Table:
                                 new_columns.append(tail_record[i+7])
                             else:
                                 new_columns.append(og_record[i+7])
-                        #print(new_columns)
                         if self.page_ranges[-1].has_capacity() != True:
                             self.page_ranges.append(Range(7 + self.num_columns, self.key, self.db_path, self.name, len(self.page_ranges)))
                         page_range = self.page_ranges[-1]
@@ -329,7 +341,6 @@ class Table:
                         page_range_number = len(self.page_ranges) - 1
                         # store the rid and location of the record in the page directory
                         self.page_directory.update({base_rid: [page_range_number, new_page_number, new_offset]})
-        print("merged!")
 
 
     #test function to allow me to call merge in test functions
