@@ -31,7 +31,21 @@ for i in range(0, number_of_records):
     key = 92106429 + i
     keys.append(key)
     records[key] = [key, randint(i * 20, (i + 1) * 20), randint(i * 20, (i + 1) * 20), randint(i * 20, (i + 1) * 20), randint(i * 20, (i + 1) * 20)]
-    print(records[key])
+    #print(records[key])
+
+# Check inserted records using select query in the main thread outside workers
+for key in keys:
+    record = query.select(key, 0, [1, 1, 1, 1, 1])[0]
+    error = False
+    for i, column in enumerate(record.columns):
+        if column != records[key][i]:
+            error = True
+    if error:
+        print('select error on', key, ':', record, ', correct:', records[key])
+    else:
+        pass
+        # print('select on', key, ':', record)
+print("Select finished")
 
 transaction_workers = []
 transactions = []
@@ -59,7 +73,6 @@ for j in range(number_of_operations_per_record):
             updated_records[key][i] = value
         transactions[key % number_of_transactions].add_query(query.select, grades_table, key, 0, [1, 1, 1, 1, 1])
         transactions[key % number_of_transactions].add_query(query.update, grades_table, key, *updated_columns)
-print("Update finished")
 
 
 # add trasactions to transaction workers  
@@ -75,8 +88,7 @@ for i in range(num_threads):
 # wait for workers to finish
 for i in range(num_threads):
     transaction_workers[i].join()
-
-
+print("Update finished")
 score = len(keys)
 for key in keys:
     correct = records[key]
@@ -84,7 +96,7 @@ for key in keys:
     
     result = query.select_version(key, 0, [1, 1, 1, 1, 1], -1)[0].columns
     if correct != result:
-        print('select error on primary key', key, ':', result, ', correct:', correct)
+        print('select error on primary key -1', key, ':', result, ', correct:', correct)
         score -= 1
 print('Version -1 Score:', score, '/', len(keys))
 
@@ -95,7 +107,7 @@ for key in keys:
     
     result = query.select_version(key, 0, [1, 1, 1, 1, 1], -2)[0].columns
     if correct != result:
-        print('select error on primary key', key, ':', result, ', correct:', correct)
+        print('select error on primary key -2', key, ':', result, ', correct:', correct)
         v2_score -= 1
 print('Version -2 Score:', v2_score, '/', len(keys))
 if score != v2_score:
@@ -108,7 +120,7 @@ for key in keys:
     
     result = query.select_version(key, 0, [1, 1, 1, 1, 1], 0)[0].columns
     if correct != result:
-        print('select error on primary key', key, ':', result, ', correct:', correct)
+        print('select error on primary key 0', key, ':', result, ', correct:', correct)
         score -= 1
 print('Version 0 Score:', score, '/', len(keys))
 

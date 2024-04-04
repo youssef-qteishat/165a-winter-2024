@@ -10,6 +10,7 @@ class MyBTree(BTrees.OOBTree.BTree):
     max_leaf_size = 50000
     max_internal_size = 10000
 
+
 class Index:
     def __init__(self, table):
         # One index for each column for fast search. All our empty initially.
@@ -22,7 +23,20 @@ class Index:
             self.create_index(i)
         #if value got updated need to reindex
         self.updated = [0] * table.num_columns
+        self.index_lock_tid = None
         pass
+    def get_index_lock(self, tid):
+        if tid != self.index_lock_tid and self.index_lock_tid != None:
+            return False
+        return True
+    def acquire_index_lock(self, tid):
+        if tid != self.index_lock_tid and self.index_lock_tid != None:
+            return False
+        self.index_lock_tid = tid
+        return True
+    def release_index_lock(self, tid):
+        self.index_lock_tid = None
+        return True
 
     """
     # returns the location of all records with the given value on column "column"
@@ -30,6 +44,10 @@ class Index:
 
     def locate(self, column, value):
         self.update_index(column)
+        if self.indices[column] is None:
+            self.drop_index(column)
+            self.create_index(column)
+            self.updated[column] = 0
         return self.indices[column].get(value)
 
     """
@@ -50,7 +68,6 @@ class Index:
     def create_index(self, column_number):
         self.drop_index(column_number)
         self.indices[column_number] = MyBTree()
-        #figure out after we get organization done
         for rid in self.table.baserids:
             val = self.table.read_record(rid, 0)[column_number+7]
             self.addToIndex(column_number, val, rid)

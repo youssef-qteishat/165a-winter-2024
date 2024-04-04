@@ -21,17 +21,127 @@ class Table:
     :param num_columns: int     #Number of Columns: all columns are integer
     :param key: int             #Index of table key in columns
     """
-    def __init__(self, name, num_columns, key):
+    def __init__(self, name, num_columns, key, db_path):
         self.name = name
         self.key = key
         self.num_columns = num_columns
+        self.db_path = db_path
         self.baserids = []
         self.page_directory = {}
         self.page_ranges = []
-        self.page_ranges.append(Range(7 + self.num_columns, self.key, self.name, len(self.page_ranges)))
+        self.page_ranges.append(Range(7 + self.num_columns, self.key, self.db_path, self.name, len(self.page_ranges)))
         self.last_rid = 0
         self.index = Index(self)
         self.update_count = 0
+
+    def get_insert_record_locks(self, columns, tid):
+        db_name, table_name, page_range, base_page_bool, page_number = (self.db_path, self.name, len(self.page_ranges) - 1, True, self.page_ranges[-1].current_base_page)
+        locks = []
+        page = Bufferpool().hold_base_page(db_name, table_name, page_range, 0, page_number, False, True)
+        offset = page.num_records
+        Bufferpool().release_base_page(db_name, table_name, page_range, 0, page_number)
+        while(True):
+            current_locks = Bufferpool().get_locks((db_name, table_name, page_range, base_page_bool, page_number))
+            for lock in current_locks:
+                if lock.tid != tid and lock.offset >= offset:
+                    return False, True, locks
+                if lock.tid == tid and lock.offset > offset:
+                    offset = lock.offset
+            if offset >= PAGECAP - 1:
+                offset = 0
+                page_number += 1
+                continue
+            if Bufferpool().acquire_lock(tid, (db_name, table_name, page_range, base_page_bool, page_number), offset, True):
+                locks.append([tid, (db_name, table_name, page_range, base_page_bool, page_number), offset, True])
+                break
+            else:
+                return False, True, locks
+        return True, False, locks
+
+    def get_delete_record_locks(self, tid, search_key):
+        db_name, table_name  = (self.db_path, self.name)
+        locks = []
+        required_pages = []
+        rids = self.index.locate(self.key, search_key)
+        if rids == None or len(rids) > 1:
+            return False, False, locks
+        rid = list(rids)[0]
+        page_range, page_number, offset = self.page_directory.get(rid)
+        if Bufferpool().acquire_lock(tid, (db_name, table_name, page_range, True, page_number), offset, True):
+            locks.append([tid, (db_name, table_name, page_range, True, page_number), offset, True])
+        else:
+            return False, True, locks
+        return True, False, locks
+    def get_select_record_locks(self, tid, search_key, search_key_index):
+        db_name, table_name  = (self.db_path, self.name)
+        locks = []
+        required_pages = []
+        rids = self.index.locate(search_key_index, search_key)
+        if rids == None:
+            return True, False, locks
+        for rid in rids:
+            page_range, page_number, offset = self.page_directory.get(rid)
+            if (page_range, page_number, offset) not in required_pages:
+                required_pages.append((page_range, page_number, offset))
+        for page_range, page_number, offset in required_pages:
+            if Bufferpool().acquire_lock(tid, (db_name, table_name, page_range, True, page_number), offset, False):
+                locks.append([tid, (db_name, table_name, page_range, True, page_number), offset, False])
+            else:
+                return False, True, locks
+        return True, False, locks
+
+    def get_sum_record_locks(self, tid, start_range, end_range):
+        db_name, table_name  = (self.db_path, self.name)
+        locks = []
+        required_pages = []
+        rids = self.index.locate_range(search_key_index, search_key)
+        if rids == None:
+            return False, False, locks
+        for rid in rids:
+            page_range, page_number, offset = self.page_directory.get(rid)
+            if (page_range, page_number, offset) not in required_pages:
+                required_pages.append((page_range, page_number, offset))
+        for page_range, page_number, offset in required_pages:
+            if Bufferpool().acquire_lock(tid, (db_name, table_name, page_range, True, page_number), offset, False):
+                locks.append([tid, (db_name, table_name, page_range, True, page_number), offset, False])
+            else:
+                return False, True, locks
+        return True, False, locks
+
+    def get_update_record_locks(self, tid, search_key):
+        db_name, table_name  = (self.db_path, self.name)
+        locks = []
+        required_pages = []
+        rids = self.index.locate(self.key, search_key)
+        if rids == None or len(rids) > 1:
+            return False, False, locks
+        rid = list(rids)[0]
+        page_range, page_number, offset = self.page_directory.get(rid)
+        if Bufferpool().acquire_lock(tid, (db_name, table_name, page_range, True, page_number), offset, True):
+            locks.append([tid, (db_name, table_name, page_range, True, page_number), offset, True])
+        else:
+            return False, True, locks
+        page_number = self.page_ranges[page_range].current_tail_page
+        page = Bufferpool().hold_tail_page(db_name, table_name, page_range, 0, page_number, False, True)
+        offset = page.num_records
+        Bufferpool().release_tail_page(db_name, table_name, page_range, 0, page_number)
+        while(True):
+            current_locks = Bufferpool().get_locks((db_name, table_name, page_range, False, page_number))
+            for lock in current_locks:
+                if lock.tid != tid and lock.offset >= offset:
+                    return False, True, locks
+                if lock.tid == tid and lock.offset > offset:
+                    offset = lock.offset
+            if offset >= PAGECAP - 1:
+                offset = 0
+                page_number += 1
+                continue
+            if Bufferpool().acquire_lock(tid, (db_name, table_name, page_range, False, page_number), offset, True):
+                locks.append([tid, (db_name, table_name, page_range, False, page_number), offset, True])
+                break
+            else:
+                return False, True, locks
+        return True, False, locks
 
     def insert_record(self, columns):
         """
@@ -42,7 +152,7 @@ class Table:
 
         # if the page range does not have capacity create a new one
         if self.page_ranges[-1].has_capacity() != True:
-            self.page_ranges.append(Range(7 + self.num_columns, self.key, self.name, len(self.page_ranges)))
+            self.page_ranges.append(Range(7 + self.num_columns, self.key, self.db_path, self.name, len(self.page_ranges)))
 
         # get the latest range
         page_range = self.page_ranges[-1]
@@ -63,7 +173,7 @@ class Table:
             self.index.addToIndex(i, columns[i], rid)
             
         if self.page_ranges[-1].has_capacity() != True:
-            self.page_ranges.append(Range(7 + self.num_columns, self.key, self.name, len(self.page_ranges)))
+            self.page_ranges.append(Range(7 + self.num_columns, self.key, self.db_path, self.name, len(self.page_ranges)))
 
 
         # return the rid to the caller (mostly used for testing right now)
@@ -104,7 +214,6 @@ class Table:
         return tail_columns
 
     def update_record(self, columns, baserid):
-        
         lastrecord = self.read_record(baserid, 0)
         lastrid = lastrecord[RID_COLUMN]
         ogrid = lastrecord[OG_RID_COLUMN]
@@ -128,12 +237,13 @@ class Table:
             copy_tail_page_number, copy_offset = self.page_ranges[basepagerange].add_tail_record(copy_tail_columns)
             self.page_directory.update({copy_rid: [basepagerange, copy_tail_page_number, copy_offset]})
             self.page_ranges[basepagerange].change_og_rid(basepagenum, baseoffset, copy_rid)
-        
+            ogrid = copy_rid
+            lastrid = ogrid
         
         rid = self.get_new_rid()
         self.page_ranges[basepagerange].change_indirection(basepagenum, baseoffset, rid)
         self.page_ranges[basepagerange].change_schema_encoding(basepagenum, baseoffset, schema_encoding)
-
+        
         # load the colomn daat into a list
         tail_columns = [lastrid, rid, int(1000000 * time()), schema_encoding, baserid, baserid, ogrid] + columns
         for i in range(7, len(tail_columns)):
@@ -145,7 +255,7 @@ class Table:
         # add the tail record and remember its location
         tail_page_number, offset = self.page_ranges[basepagerange].add_tail_record(tail_columns)
         page_range_number = len(self.page_ranges) - 1
-
+    
         # store the rid and location of the record in the page directory
         self.page_directory.update({rid: [basepagerange, tail_page_number, offset]})
         # return the rid to the caller (mostly used for testing right now)
@@ -190,14 +300,13 @@ class Table:
         self.page_directory.pop(rid)
 
     def __merge(self):
-        #print("merge is happening")
         mergedrids = []
         page_range_count = len(self.page_ranges)
         for page_range_num in reversed(range(page_range_count)):
             for tail_page_num in range(self.page_ranges[page_range_num].current_tail_page+1):
-                tail_page = Bufferpool().hold_tail_page(self.name, page_range_num, 0, tail_page_num, False)
+                tail_page = Bufferpool().hold_tail_page(self.db_path, self.name, page_range_num, 0, tail_page_num, False, True)
                 offset = tail_page.num_records*8
-                Bufferpool().release_tail_page(self.name, page_range_num, 0, tail_page_num)
+                Bufferpool().release_tail_page(self.db_path, self.name, page_range_num, 0, tail_page_num)
                 while offset > 0:
                     offset -= 8
                     tail_record = self.page_ranges[page_range_num].read_tail_record(tail_page_num, offset)
@@ -212,7 +321,7 @@ class Table:
 
                         base_record = self.page_ranges[base_page_range].read_base_record(base_page_num, base_offset)
                         if tail_rid <= base_record[TPS_COLUMN]:
-                            continue
+                            return
                         og_page_range, og_page_num, og_offset = self.page_directory[base_record[OG_RID_COLUMN]]
                         og_record = self.page_ranges[og_page_range].read_tail_record(og_page_num, og_offset)
                         new_columns = base_record[:5]
@@ -225,15 +334,13 @@ class Table:
                                 new_columns.append(tail_record[i+7])
                             else:
                                 new_columns.append(og_record[i+7])
-                        #print(new_columns)
                         if self.page_ranges[-1].has_capacity() != True:
-                            self.page_ranges.append(Range(7 + self.num_columns, self.key, self.name, len(self.page_ranges)))
+                            self.page_ranges.append(Range(7 + self.num_columns, self.key, self.db_path, self.name, len(self.page_ranges)))
                         page_range = self.page_ranges[-1]
                         new_page_number, new_offset = page_range.add_base_record(new_columns)
                         page_range_number = len(self.page_ranges) - 1
                         # store the rid and location of the record in the page directory
                         self.page_directory.update({base_rid: [page_range_number, new_page_number, new_offset]})
-
 
 
     #test function to allow me to call merge in test functions
